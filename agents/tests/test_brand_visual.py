@@ -429,8 +429,16 @@ async def run_stuck(page, url="https://example.com"):
     return finding, s3
 
 
-@pytest.mark.usefixtures("short_deadline")
-async def test_deadline_after_capture_keeps_the_screenshot_and_reports_capture_status():
+async def test_deadline_after_capture_keeps_the_screenshot_and_reports_capture_status(
+    monkeypatch,
+):
+    from phish_agents.common import server
+
+    # 6 / 3 s still flaked in the full pre-push run at load average 30: the loop stalled
+    # past the settle window and the screenshot was cancelled. The capture itself is instant
+    # here, so a wider window only costs wall time.
+    monkeypatch.setattr(server, "PAGE_DEADLINE_S", 20.0)
+    monkeypatch.setattr(brand_agent, "DEADLINE_MARGIN_S", 10.0)
     finding, s3 = await run_stuck(FakePage())
     assert finding.status == "error" and finding.artifacts == [SHOT_KEY]
     evidence = finding.signals[0].evidence
