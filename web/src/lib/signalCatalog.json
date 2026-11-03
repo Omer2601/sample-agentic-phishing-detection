@@ -1,4 +1,8 @@
 {
+  "base64_decode": {
+    "title": "Decodes base64 data in the browser",
+    "explain": "The page decodes base64 text with atob() while it runs. This is common in legitimate sites, but phishing kits use it to hide scripts, form targets or URLs from scanners."
+  },
   "blocked_by_browser": {
     "title": "The isolated browser refused to open this URL",
     "explain": "The managed browser stopped the navigation before any request was sent. This is a gap in what could be captured, not evidence of phishing."

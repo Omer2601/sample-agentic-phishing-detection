@@ -72,7 +72,7 @@ def find(owner: str, key: str, *, now: float | None = None) -> Claim | None:
     return Claim(
         scan_id=str(item["scan_id"]),
         url=str(item["url"]),
-        created_at=int(item["created_at"]),
+        created_at=int(item.get("created_at", 0)),
         deduplicated=bool(item.get("deduplicated", False)),
     )
 

@@ -4,7 +4,7 @@
 
 ![License: MIT-0](https://img.shields.io/badge/license-MIT--0-green) ![Python 3.13](https://img.shields.io/badge/python-3.13-blue) ![AWS CDK](https://img.shields.io/badge/IaC-AWS%20CDK%20%28Python%29-orange) ![Amazon Bedrock AgentCore](https://img.shields.io/badge/Amazon%20Bedrock-AgentCore-01A88D) ![Strands Agents](https://img.shields.io/badge/agents-Strands-blueviolet)
 
-[Demo](#demo) · [Results](#measured-results) · [How it works](#how-it-works) · [Quick start](#quick-start) · [API](#use-the-api) · [Cost](#cost) · [Docs](#documentation) · [Clean up](#clean-up)
+[Demo](#demo) · [Presentation](docs/presentation/agentic-phishing-detection.pdf) · [Results](#measured-results) · [How it works](#how-it-works) · [Quick start](#quick-start) · [API](#use-the-api) · [Cost](#cost) · [Docs](#documentation) · [Clean up](#clean-up)
 
 > [!IMPORTANT]
 > This is sample code, for non-production usage. Use it for learning and prototyping; it is not production ready. Verdicts are advisory: a person should make the final call. Read [Responsible AI](docs/responsible-ai.md) before you use it.
@@ -13,9 +13,9 @@
 
 ## Demo
 
-[![Demo: a legitimate scan, a phishing verdict with the specialists' evidence and screenshot, a CSV batch and an API call](docs/media/demo.gif)](docs/media/demo.mp4)
+[![Demo video: a legitimate scan, a phishing verdict with the specialists' evidence and screenshot, a CSV batch and an API call](docs/media/poster.png)](docs/media/demo.mp4)
 
-Watch the [full demo with narration](docs/media/demo.mp4) (captions: [demo.srt](docs/media/demo.srt), script: [demo-script.md](docs/media/demo-script.md)).
+Watch the [full demo with narration](docs/media/demo.mp4), or page through the [presentation](docs/presentation/agentic-phishing-detection.pdf).
 
 | Phishing verdict with evidence                                                                                                                                                          | Batch of URLs                                                                                                                                                              |
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -82,21 +82,21 @@ Accuracy differences of 3 to 4 URLs between the two runs are within run-to-run v
 
 ## Quick start
 
-You need AWS credentials, Node.js 22, Python 3.13 with [uv](https://docs.astral.sh/uv/), Finch or Docker with ARM64 builds, and Amazon Bedrock access to Claude Opus 5.5 and Claude Sonnet 5.5 in your Region.
+You need AWS credentials, Node.js 22, Python 3.13 with [uv](https://docs.astral.sh/uv/), Finch or Docker with ARM64 builds, and Amazon Bedrock access to Claude Opus 5.5 and Claude Sonnet 5.5 in your Region. The API example also needs `awscurl` (`uv tool install awscurl==0.45`) and `jq`.
 
 ```bash
 git clone https://github.com/aws-samples/sample-agentic-phishing-detection.git
 cd sample-agentic-phishing-detection
 uv sync --all-packages
-export AWS_REGION=<your-region>
-uv run python scripts/preflight.py --profile <your-profile> --region "$AWS_REGION"   # checks models, AgentCore, bootstrap, tools
+export AWS_REGION=<your-region> AWS_PROFILE=<your-profile>   # every command below uses this account
+uv run python scripts/preflight.py --profile "$AWS_PROFILE" --region "$AWS_REGION"   # checks models, AgentCore, bootstrap, tools
 
-npx aws-cdk@2.1143.0 bootstrap aws://<account-id>/$AWS_REGION aws://<account-id>/us-east-1   # once per account
+npx aws-cdk@2.1143.0 bootstrap aws://<account-id>/$AWS_REGION aws://<account-id>/us-east-1   # once per account; skip if preflight passes it
 cd infra && export CDK_DOCKER=finch   # or docker
-npx aws-cdk@2.1143.0 deploy --all -c owner=<team or alias>   # about 8 minutes the first time
+npx aws-cdk@2.1143.0 deploy --all -c owner=<team or alias>   # 8 to 16 minutes the first time; add --require-approval never in CI
 ```
 
-Then open the `WebUrl` stack output, register with your email, sign in with the temporary password Cognito emails you, and scan `https://www.iana.org/domains/reserved`: expect **Legitimate**.
+Then open the `WebUrl` stack output, register with your email, sign in with the temporary password Cognito emails you (no inbox, for example a demo user: see [getting-started](docs/getting-started.md#create-a-user-without-email)), and scan `https://www.iana.org/domains/reserved`: expect **Legitimate**.
 
 `owner` becomes the `Owner` tag on every resource, so cost shows up against you in Cost Explorer. A small edge stack goes to `us-east-1` because AWS requires the AWS WAF web ACL for CloudFront there. Step by step, with every check: [docs/getting-started.md](docs/getting-started.md).
 
@@ -105,7 +105,8 @@ Then open the `WebUrl` stack output, register with your email, sign in with the 
 The API is the same one the web app uses. Every route except `GET /health` needs an AWS SigV4 signature. Cognito gates only the web console, not the API. Attach the `ApiInvokePolicyArn` stack output to the IAM role or user you call with, then:
 
 ```bash
-API=$(aws cloudformation describe-stacks --stack-name PhishTriageAgentic \
+STACK=${STACK:-PhishTriageAgentic}   # or <Name>TriageAgentic if you deployed with -c appName=<name>
+API=$(aws cloudformation describe-stacks --stack-name "$STACK" \
   --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" --output text); API=${API%/}
 id=$(awscurl --service execute-api --region "$AWS_REGION" -X POST "$API/scan" \
   -H 'Content-Type: application/json' -d '{"url": "https://example.com"}' | jq -r .scan_id)

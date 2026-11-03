@@ -23,7 +23,7 @@ Then the worker stores the verdict in `scans` (`COMPLETE`, `report_status` `PEND
 
 Not drawn as numbered lines:
 
-- **Web search.** When a page names a brand whose official site the model is unsure of, `brand_visual` calls AgentCore Web Search through its own Gateway `phish-web-search` in the `us-east-1` edge stack (in `us-east-1`, `eu-west-1` or `ap-northeast-1` it is a target on the regional tools Gateway instead) and caches the answer.
+- **Web search.** When a page names a brand whose official site the model is unsure of, `brand_visual` calls AgentCore Web Search through its own Gateway `phish-web-search` in the `us-east-1` edge stack (in `us-east-1`, `eu-west-1` or `ap-northeast-1` it is a regional Web Search Gateway in the main stack instead, separate from the tools Gateway) and caches the answer.
 - **Deadlines.** Each specialist has its own deadline and writes its own Finding; a specialist that fails writes nothing and becomes an error Finding when the worker reads the Findings back.
 
 Supporting services, and who uses them:
@@ -134,6 +134,6 @@ All stores are encrypted with AWS KMS and block public access. Deleting the stac
 - **Verdict first, report second.** The slow part of an Opus answer is the long report, so the orchestrator answers in two turns on one session. A failure in turn 2 only marks the report `FAILED`.
 - **Dead links skip the models.** The pre-check costs one short browser navigation (and, when the browser cannot answer, one HTTP probe). On a 404 or a site that is down it replaces the whole analysis with a fixed answer.
 - **Result cache.** RDAP lookups change rarely and a brand's official site does not change per scan, so both are cached in a small DynamoDB table. The web search TTL is deliberately short (24 hours) to limit cache poisoning; see [security.md](security.md#network).
-- **Web search in the edge stack.** The Web Search connector is offered in `us-east-1`, `eu-west-1` and `ap-northeast-1` only, and the sample already has a `us-east-1` stack for the CloudFront web ACL, so the web search Gateway lives there (in those three Regions it is a target of the tools Gateway instead). Only `brand_visual` may invoke it, and queries stay inside AWS. `-c webSearch=false` removes it.
+- **Web search in the edge stack.** The Web Search connector is offered in `us-east-1`, `eu-west-1` and `ap-northeast-1` only, and the sample already has a `us-east-1` stack for the CloudFront web ACL, so the web search Gateway lives there (in those three Regions it is a regional Gateway in the main stack instead, separate from the tools Gateway). Only `brand_visual` may invoke it, and queries stay inside AWS. `-c webSearch=false` removes it.
 - **Stats computed as you go.** The Insights page reads a few pre-computed rows instead of scanning your history, so it stays fast as history grows.
 - **A sweeper that does not grow with history.** Every 5 minutes a sweeper re-queues stuck scans by querying a `status` index for `PENDING` rows, so its cost follows the scans in flight, not the scans stored.

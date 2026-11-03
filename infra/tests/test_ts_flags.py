@@ -71,6 +71,15 @@ def test_capture_recovery_is_on_by_default_and_reaches_every_runtime(harness_con
         assert "CAPTURE_RECOVERY" not in runtime_env(off, name)
 
 
+def test_capture_block_retry_is_off_by_default_and_reaches_every_runtime(harness_context, test_env):
+    assert load_config(cdk.App(context=harness_context).node).capture_block_retry is False
+    off = synth(harness_context, test_env)
+    on = synth(harness_context, test_env, captureBlockRetry="true")
+    for name in ("url_analyst", "brand_visual", "code_analyst", "tools_server", "dispatcher"):
+        assert runtime_env(on, name)["CAPTURE_BLOCK_RETRY"] == "1"
+        assert "CAPTURE_BLOCK_RETRY" not in runtime_env(off, name)
+
+
 WORKER = "phish_backend.worker.run_scan.handler"
 
 

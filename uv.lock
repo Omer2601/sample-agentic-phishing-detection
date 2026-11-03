@@ -1154,6 +1154,7 @@ version = "2.0.0"
 source = { editable = "backend" }
 dependencies = [
     { name = "boto3" },
+    { name = "idna" },
     { name = "phish-contracts" },
     { name = "pydantic" },
 ]
@@ -1167,6 +1168,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "boto3", specifier = "==1.43.105" },
+    { name = "idna", specifier = "==3.20" },
     { name = "phish-contracts", editable = "contracts" },
     { name = "pydantic", specifier = "==2.13.5" },
 ]

@@ -51,6 +51,22 @@ def test_build_blocked_has_unknown_verdict_and_signal():
     assert f.signals[0].name == "model_guardrail_block"
 
 
+def test_no_usable_answer_without_a_block_is_an_error_not_a_refusal():
+    f = build_finding(
+        "brand_visual",
+        None,
+        blocked=False,
+        usage=USAGE,
+        started=time.monotonic(),
+        calls=[],
+        artifacts=["a.png"],
+    )
+    assert f.status == "error" and f.verdict == "unknown" and f.confidence == 0
+    assert f.signals[0].name == "analysis_error"
+    assert "model_guardrail_block" not in [s.name for s in f.signals]
+    assert f.artifacts == ["a.png"]
+
+
 def test_error_finding():
     f = error_finding(
         "code_analyst", "navigation failed", usage=USAGE, started=time.monotonic(), calls=[]

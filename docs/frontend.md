@@ -75,6 +75,7 @@ You do not deploy `web/dist/` by hand: `npx aws-cdk@2.1143.0 deploy --all` build
 
 - Amazon Cognito authenticates every user. By default (`signUpMode=app`) you enter your email on the Register page (plus the invite code, if enabled). The web tier calls Cognito `AdminCreateUser`, and Cognito emails you a temporary password. Your first sign-in proves you own the inbox and makes you choose a new password. The Register page answers the same way whether or not the account already exists. With `-c signUpMode=cognito` the app uses Cognito self sign-up with email verification instead.
 - An optional invite code (`-c inviteCode=true`) and an optional email domain allowlist (`-c allowedEmailDomains=...`) limit who can register.
+- Cognito managed login loads its style sheets and scripts from additional Amazon CloudFront domains. If you restrict browser egress with a proxy or allow list, allow those along with the app domain and `*.amazoncognito.com`, or sign-in will not render.
 - The Python tier in `web/server/` keeps your session in a `Secure`, `HttpOnly`, `SameSite` cookie and signs every `/api/*` call to API Gateway with SigV4. The browser never holds AWS credentials.
 - Sign-in offers an authenticator app (TOTP) that users may skip, unless the stack was deployed with `-c mfa=required`.
 - More than 10 sign-up attempts from one IP address in 5 minutes get `429`, and the Register page says "Too many sign-up attempts from your network, try again in a few minutes".

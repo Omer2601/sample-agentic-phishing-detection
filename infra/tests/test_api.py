@@ -1,5 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
+import json
+
 import aws_cdk as cdk
 import pytest
 from aws_cdk import aws_lambda as lambda_
@@ -214,20 +216,39 @@ def _api_s3_keys(t, action):
     return keys
 
 
-def test_api_reads_only_screenshots_and_reports(t):
+def test_api_reads_only_screenshots_reports_and_the_feed_cache(t):
     assert _api_s3_keys(t, "s3:GetObject") == {
         "scans/*/screenshot.png",
         "scans/*/report.html",
         "batches/*/report.html",
+        "feed/live-phishing.json",
     }
 
 
-def test_api_writes_only_uploads_and_reports(t):
+def test_api_writes_only_uploads_reports_and_the_feed_cache(t):
     assert _api_s3_keys(t, "s3:PutObject") == {
         "uploads/*",
         "scans/*/report.html",
         "batches/*/report.html",
+        "feed/live-phishing.json",
     }
+
+
+def test_feed_cache_grant_is_the_one_exact_key_in_the_artifacts_bucket(t):
+    # The key the backend writes: phish_backend/api/feed.py CACHE_KEY.
+    (bucket_id,) = (k for k in t.find_resources("AWS::S3::Bucket") if k.startswith("DataArtifacts"))
+    _, statements = _api_statements(t)
+    feed = [
+        (st["Action"], r)
+        for st in statements
+        for r in (st["Resource"] if isinstance(st["Resource"], list) else [st["Resource"]])
+        if isinstance(r, dict) and "feed" in json.dumps(r)
+    ]
+    assert sorted(a for a, _ in feed) == ["s3:GetObject", "s3:PutObject"]
+    for _, r in feed:
+        bucket_arn, key = r["Fn::Join"][1]
+        assert bucket_arn == {"Fn::GetAtt": [bucket_id, "Arn"]}
+        assert key == "/feed/live-phishing.json"
 
 
 def test_report_resources_are_get_only(t):

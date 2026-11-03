@@ -178,7 +178,8 @@ class RuntimeToolsClient:
         return cls(
             arn,
             env.get("AWS_REGION") or arn.split(":")[3],
-            session_per_scan=(env.get("TOOLS_SESSION_PER_SCAN") or "").strip() == "1",
+            session_per_scan=(env.get("TOOLS_SESSION_PER_SCAN") or "").strip().lower()
+            in {"1", "true", "yes", "on"},
         )
 
     def _boto_client(self, read_timeout_s: int):

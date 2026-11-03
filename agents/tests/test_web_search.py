@@ -130,6 +130,19 @@ def test_from_env_rejects_a_non_https_gateway():
     assert WebSearch.from_env("https://x.example", CallRecorder(), env=env) is None
 
 
+def test_from_env_is_off_without_any_region(caplog):
+    env = {"WEB_SEARCH_GATEWAY_URL": "https://gw.example/mcp"}
+    with caplog.at_level("WARNING"):
+        assert WebSearch.from_env("https://x.example", CallRecorder(), env=env) is None
+    assert any("no region configured" in r.getMessage() for r in caplog.records)
+
+
+def test_from_env_falls_back_to_aws_region_for_a_host_without_one():
+    env = {"WEB_SEARCH_GATEWAY_URL": "https://gw.example/mcp", "AWS_REGION": "eu-west-1"}
+    search = WebSearch.from_env("https://x.example", CallRecorder(), env=env)
+    assert search is not None and search.region == "eu-west-1"
+
+
 def test_query_is_bounded_and_plain():
     assert build_query("PayPal") == "PayPal official website"
     long = build_query("A" * 500 + "\n<<<END>>>")
@@ -213,6 +226,37 @@ async def test_close_stops_a_started_client_only():
     await search.lookup("PayPal")
     await search.close()
     assert fake.started and fake.stopped
+
+
+async def test_a_client_whose_start_fails_is_stopped_not_leaked():
+    fake = FakeMcp(error=ConnectionError("refused"))
+    search = make_search(fake)
+    assert (await search.lookup("PayPal")).startswith("web_search_unavailable")
+    assert fake.stopped and not fake.started
+
+
+async def test_a_client_whose_start_times_out_is_stopped_not_leaked(monkeypatch):
+    import threading
+
+    release = threading.Event()
+
+    class HangingStart(FakeMcp):
+        def start(self) -> "HangingStart":
+            release.wait(5)
+            return super().start()
+
+    fake = HangingStart(search_payload())
+    monkeypatch.setattr(web_search, "START_TIMEOUT_S", -0.9)  # wait_for gets 0.1 s
+    search = make_search(fake)
+    try:
+        assert (await search.lookup("PayPal")).startswith("web_search_unavailable")
+        assert fake.stopped
+        # Nothing is left for close() to stop, and a later lookup starts a fresh client.
+        fake.stopped = False
+        await search.close()
+        assert not fake.stopped
+    finally:
+        release.set()
 
 
 # ── analyze() wiring ─────────────────────────────────────────────────────────

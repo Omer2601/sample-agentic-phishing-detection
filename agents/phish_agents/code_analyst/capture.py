@@ -227,12 +227,22 @@ class CodeCapture:
                     AsyncExitStack() as stack,
                 ):
 
-                    def listen(target) -> None:
+                    def listen(target):
                         # A retry in a certificate-tolerant page describes that page alone.
+                        kept = (list(requests), list(pending_bodies))
                         requests.clear()
                         pending_bodies.clear()
                         target.on("request", on_request)
                         target.on("response", on_response)
+
+                        def restore() -> None:
+                            # A failed retry keeps the first page: its evidence comes back.
+                            target.remove_listener("request", on_request)
+                            target.remove_listener("response", on_response)
+                            requests[:] = kept[0]
+                            pending_bodies[:] = kept[1]
+
+                        return restore
 
                     listen(page)
 
@@ -328,9 +338,16 @@ class CodeCapture:
         for signal in capture_signals(data):
             data[signal.name] = signal.evidence
         data["derived_signals"] = derive_signals(data, urlparse(nav["final_url"]).hostname or "")
-        self._store(data)
         self.data = data
+        await self._store_artifact(data)
         return data
+
+    async def _store_artifact(self, data: dict) -> None:
+        try:
+            # boto3 blocks; off the event loop, and a failed upload keeps the result.
+            await asyncio.to_thread(self._store, data)
+        except Exception as exc:  # noqa: BLE001 - capture.json is an artifact, not the result
+            logger.warning("capture.json upload failed error=%s", type(exc).__name__)
 
     def _store(self, data: dict) -> None:
         key = f"scans/{self.scan_id}/capture.json"
@@ -356,11 +373,7 @@ class CodeCapture:
         if static is None:
             return
         self.data["static_html"] = static
-        try:
-            # boto3 blocks; off the event loop, and a failed upload keeps the result.
-            await asyncio.to_thread(self._store, self.data)
-        except Exception as exc:  # noqa: BLE001 - capture.json is an artifact, not the result
-            logger.warning("capture.json upload failed error=%s", type(exc).__name__)
+        await self._store_artifact(self.data)
 
     def _static(self) -> dict | None:
         static = (self.data or {}).get("static_html")
@@ -402,6 +415,7 @@ class CodeCapture:
             self.site_block,
             data.get("provider_warning"),
             browser.sibling_capture(data),
+            data.get("block_retry"),
         )
 
     def page_observed(self) -> bool:

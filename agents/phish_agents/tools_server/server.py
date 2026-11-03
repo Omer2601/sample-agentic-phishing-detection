@@ -67,6 +67,18 @@ def _s3():
     return boto3.client("s3", region_name=os.environ["AWS_REGION"])
 
 
+def _log_tool(name: str, scan_id: str, started: float, cap) -> None:
+    """One line per capture: server-side wall time, to compare with the specialist's wait."""
+    failure = cap.failure.code if cap.failure else ""
+    logger.info(
+        "tool timing name=%s scan=%s ms=%d failure=%s",
+        name,
+        scan_id,
+        int((time.monotonic() - started) * 1000),
+        failure,
+    )
+
+
 def _refused(reason: str) -> str:
     """The payload for a URL our guard refuses, in the shape a failed capture has."""
     failure = CaptureFailure(BLOCKED_BY_GUARD, "url_safety", reason)
@@ -89,10 +101,12 @@ async def run_capture_page(url: str, scan_id: str, *, s3=None, open_page_fn=open
     reason = validate_url(url)
     if reason:
         return _refused(reason)
+    started = time.monotonic()
     cap = BrandCapture(
         url, scan_id, CallRecorder(), s3 or _s3(), os.environ["ARTIFACTS_BUCKET"], open_page_fn
     )
     await cap.capture()
+    _log_tool("capture_page", scan_id, started, cap)
     return json.dumps(capture_payload(cap))
 
 
@@ -101,6 +115,7 @@ async def run_capture_page_code(url: str, scan_id: str, *, s3=None, open_page_fn
     reason = validate_url(url)
     if reason:
         return _refused(reason)
+    started = time.monotonic()
     cap = CodeCapture(
         url, scan_id, CallRecorder(), s3 or _s3(), os.environ["ARTIFACTS_BUCKET"], open_page_fn
     )
@@ -108,6 +123,7 @@ async def run_capture_page_code(url: str, scan_id: str, *, s3=None, open_page_fn
         await asyncio.wait_for(cap.capture(), CODE_CAPTURE_DEADLINE_S)
     except TimeoutError:
         logger.warning("capture_page_code deadline after %ss", CODE_CAPTURE_DEADLINE_S)
+        _log_tool("capture_page_code", scan_id, started, cap)
         return json.dumps(
             {
                 "data": {
@@ -120,6 +136,7 @@ async def run_capture_page_code(url: str, scan_id: str, *, s3=None, open_page_fn
                 "site_block": None,
             }
         )
+    _log_tool("capture_page_code", scan_id, started, cap)
     return json.dumps(capture_payload(cap))
 
 

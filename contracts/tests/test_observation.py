@@ -149,6 +149,15 @@ def test_a_model_written_capped_from_is_ignored():
     assert extract_verdict(text).capped_from is None
 
 
+def test_a_model_written_page_observed_is_ignored():
+    # page_observed is measured from the browser captures, never taken from the model.
+    text = (
+        '{"verdict":"legitimate","risk_score":5,"confidence":"high","action":"allow",'
+        '"summary":"ok","page_observed":true}'
+    )
+    assert extract_verdict(text).page_observed is None
+
+
 SIBLING = Signal(name="www_sibling_capture", severity="low", evidence="Bare host captured.")
 TLS = Signal(name="tls_error", severity="low", evidence="Certificate name error.")
 SIBLING_ONLY = [

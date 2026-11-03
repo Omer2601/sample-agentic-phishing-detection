@@ -2,9 +2,10 @@
 # SPDX-License-Identifier: MIT-0
 """A small AgentCore Gateway whose only target is the managed Web Search connector.
 
-brand_visual calls it over MCP with SigV4 to confirm a brand's official website. It lives in
-the us-east-1 edge stack because the connector is offered in only a few Regions, and the
-regional stack reads its URL and ARN through a cross-region reference.
+brand_visual calls it over MCP with SigV4 to confirm a brand's official website, and is the
+only role granted InvokeGateway on it. In a Region that offers the connector it lives in the
+regional stack; elsewhere in the us-east-1 edge stack, and the regional stack reads its URL and
+ARN through a cross-region reference.
 
 Cost: no idle charge. AgentCore Web Search bills $7 per 1,000 queries (AgentCore pricing page,
 checked 2026-09-30); brand_visual makes at most 2 per scan, so at most $0.014 per URL.
@@ -44,10 +45,10 @@ class WebSearchEndpoint:
 
 
 def web_search_folds(cfg: AppConfig, region: str | None) -> bool:
-    """True when the Web Search target can live on the regional tools Gateway.
+    """True when the Web Search Gateway can live in the regional stack.
 
-    Only in a Region that offers the connector. Everywhere else it stays on the us-east-1 edge
-    Gateway.
+    Only in a Region that offers the connector. Everywhere else it stays in the us-east-1 edge
+    stack.
     """
     return bool(
         cfg.web_search

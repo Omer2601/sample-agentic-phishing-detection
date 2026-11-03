@@ -122,6 +122,25 @@ async def test_capture_page_stores_screenshot_and_returns_no_image():
     assert out["failure"] is None and out["data"]["title"] == "PayPal"
 
 
+async def test_each_capture_logs_its_server_side_wall_time(caplog):
+    with caplog.at_level("INFO", logger="phish_agents.tools_server.server"):
+        await tools_server.run_capture_page(
+            "https://paypa1-login.xyz",
+            "scan-12345678",
+            s3=ReadableS3(),
+            open_page_fn=open_page_fn(FakePage(title="PayPal", body_text="hi")),
+        )
+        await tools_server.run_capture_page_code(
+            "https://paypa1-login.xyz",
+            "scan-12345678",
+            s3=ReadableS3(),
+            open_page_fn=open_page_fn(FakePage(title="PayPal", body_text="hi")),
+        )
+    lines = [r.getMessage() for r in caplog.records if r.getMessage().startswith("tool timing")]
+    assert [line.split()[2] for line in lines] == ["name=capture_page", "name=capture_page_code"]
+    assert all("scan=scan-12345678" in line for line in lines)
+
+
 @pytest.mark.parametrize(
     "url", ["http://169.254.169.254/latest", "http://localhost/", "file:///etc/passwd"]
 )

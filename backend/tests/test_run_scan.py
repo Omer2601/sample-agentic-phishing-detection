@@ -618,3 +618,12 @@ def _three_attempts_with_memory(msg, fake, memory):
             run_scan.process_message(msg, agentcore=fake, memory=memory)
         except run_scan.RetryableScanError:
             pass
+
+
+def test_a_harness_scan_another_worker_stored_is_not_remembered_or_counted_twice(aws, monkeypatch):
+    remembered, emitted = [], []
+    monkeypatch.setattr(run_scan.store, "complete_scan", lambda *a, **k: False)
+    monkeypatch.setattr(run_scan.scan_memory, "remember", lambda *a, **k: remembered.append(a))
+    monkeypatch.setattr(run_scan, "_emit", lambda *a, **k: emitted.append(a))
+    run_scan.process_message(seed(), agentcore=FakeAgentCore())
+    assert remembered == [] and emitted == []

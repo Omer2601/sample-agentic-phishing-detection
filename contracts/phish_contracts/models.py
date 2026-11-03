@@ -198,6 +198,9 @@ class PageState(StrEnum):
     TAKEN_DOWN = "taken_down"
     PARKED = "parked"
     S3_ACCESS_DENIED = "s3_access_denied"
+    # A bot check or block page answered instead of the site (CAPTURE_BLOCK_RETRY only): the
+    # site is up but was not observed, unlike a dead site.
+    BOT_BLOCKED = "bot_blocked"
 
 
 class PageStateObservation(BaseModel):
@@ -255,7 +258,8 @@ class VerdictDetail(BaseModel):
     page_state: PageState
     # taken_down: s3_all_access_disabled, vercel_451_deployment_unavailable,
     # provider_suspended_page. parked: godaddy_lander, for_sale_lander.
-    # s3_access_denied: s3_access_denied.
+    # s3_access_denied: s3_access_denied. bot_blocked: bot_challenge_page, bot_filter_page,
+    # block_page.
     reason: str
     # The browser specialists whose capture showed it.
     agents: list[str] = Field(default_factory=list)
@@ -483,8 +487,8 @@ def extract_verdict(text: str) -> Verdict:
 
 
 def _code_fields_cleared(verdict: Verdict) -> Verdict:
-    """capped_from is code's record of a cap; a model that writes one is ignored."""
-    return verdict.model_copy(update={"capped_from": None})
+    """capped_from and page_observed are code's fields; model-written values are ignored."""
+    return verdict.model_copy(update={"capped_from": None, "page_observed": None})
 
 
 class ReportMissing(ValueError):

@@ -126,7 +126,8 @@ def put_scan_if_absent(record: ScanRecord) -> bool:
     item["expires_at"] = expires_at(record.queued_at)
     # Written on every row, dedup on or off, so GET /scans/lookup and a later switch-on of
     # POST /scan dedup need no backfill. Internal: never on the wire model.
-    item["dedup_key"] = dedup_key(record.owner, record.url)
+    if record.owner and record.url:
+        item["dedup_key"] = dedup_key(record.owner, record.url)
     try:
         _scans().put_item(Item=item, ConditionExpression="attribute_not_exists(scan_id)")
     except ClientError as exc:
@@ -687,10 +688,18 @@ def index_not_ready(exc: ClientError) -> bool:
 
 
 def index_unavailable(exc: ClientError) -> bool:
-    """True when a GSI cannot be read yet: it does not exist, or is being created or backfilled."""
+    """True when a GSI cannot be read yet: it does not exist, or is being created or backfilled.
+
+    DynamoDB reports a missing index as a ValidationException ("does not have the specified
+    index"); some emulators use ResourceNotFoundException ("Invalid index"). A missing table
+    is also ResourceNotFoundException but never mentions an index, so it is not matched.
+    """
     message = str(exc.response.get("Error", {}).get("Message", "")).lower()
-    return index_not_ready(exc) or (
-        _code(exc) == "ValidationException" and "specified index" in message
+    code = _code(exc)
+    return (
+        index_not_ready(exc)
+        or (code == "ValidationException" and "specified index" in message)
+        or (code == "ResourceNotFoundException" and "invalid index" in message)
     )
 
 

@@ -733,3 +733,14 @@ async def test_page_state_never_reaches_the_orchestrator_over_mcp():
     )
     assert out["agent"] == "code_analyst"
     assert "page_state" not in out
+
+
+def test_every_code_heuristic_signal_is_in_the_catalog():
+    from importlib import resources
+
+    from phish_agents.code_analyst import heuristics
+
+    catalog = json.loads(
+        resources.files("phish_contracts").joinpath("signal_catalog.json").read_text()
+    )
+    assert {name for name, _, _ in heuristics._PATTERNS} <= set(catalog)

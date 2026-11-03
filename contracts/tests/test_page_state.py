@@ -28,6 +28,9 @@ STATES = {
     "godaddy_lander": PageState.PARKED,
     "for_sale_lander": PageState.PARKED,
     "s3_access_denied": PageState.S3_ACCESS_DENIED,
+    "bot_challenge_page": PageState.BOT_BLOCKED,
+    "bot_filter_page": PageState.BOT_BLOCKED,
+    "block_page": PageState.BOT_BLOCKED,
 }
 
 

@@ -153,7 +153,12 @@ class WebSearch:
             logger.warning("web search disabled: WEB_SEARCH_GATEWAY_URL is not an https URL")
             return None
         match = _REGION_IN_HOST.search(urlsplit(url).netloc)
-        region = env.get("WEB_SEARCH_REGION") or (match.group(1) if match else env["AWS_REGION"])
+        region = env.get("WEB_SEARCH_REGION") or (
+            match.group(1) if match else env.get("AWS_REGION", "")
+        )
+        if not region:
+            logger.warning("web search disabled: no region configured")
+            return None
         return cls(
             url,
             region,
@@ -209,7 +214,14 @@ class WebSearch:
         if self._client is None:
             client = self._client_factory(self.url, self.region)
             # start() blocks while it connects, so it runs off the event loop.
-            await asyncio.wait_for(asyncio.to_thread(client.start), START_TIMEOUT_S + 1)
+            try:
+                await asyncio.wait_for(asyncio.to_thread(client.start), START_TIMEOUT_S + 1)
+            except BaseException:
+                # close() only stops self._client, so a client that never started is stopped
+                # here. A timed-out start() thread keeps running; stop() closes its HTTP pool,
+                # which fails that thread's request rather than leaving the pool open.
+                await self._stop(client)
+                raise
             self._client = client
         return await asyncio.wait_for(
             self._client.call_tool_async(
@@ -238,8 +250,11 @@ class WebSearch:
 
     async def close(self) -> None:
         client, self._client = self._client, None
-        if client is None:
-            return
+        if client is not None:
+            await self._stop(client)
+
+    @staticmethod
+    async def _stop(client: McpClientLike) -> None:
         try:
             await asyncio.to_thread(client.stop, None, None, None)
         except Exception as exc:  # noqa: BLE001 - cleanup must not replace the Finding

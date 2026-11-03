@@ -745,3 +745,28 @@ async def test_a_script_body_that_never_arrives_does_not_hold_the_capture():
     texts = {s["src"]: s["text"] for s in data["scripts"] if s["src"]}
     assert texts["https://cdn.evil.ru/k.js"] == "document.onkeydown=1"
     assert texts.get("https://cdn.evil.ru/stream.js", "") == ""
+
+
+async def test_a_failed_capture_json_upload_keeps_a_live_capture():
+    import threading
+
+    on_loop = []
+
+    class DownS3(FakeS3):
+        def put_object(self, **kwargs):
+            on_loop.append(threading.current_thread() is threading.main_thread())
+            raise RuntimeError("s3 unavailable")
+
+    cap = CodeCapture(
+        "https://paypal-verify.xyz",
+        "scan-12345678",
+        CallRecorder(),
+        DownS3(),
+        "b",
+        make_open_page(page_with_dom(), []),
+    )
+    data = await cap.capture()
+    # capture.json is an artifact, not the result: the capture stands without it.
+    assert "error" not in data and cap.failure is None and cap.artifacts == []
+    assert data["forms"][0]["action"].startswith("https://collect.evil.ru")
+    assert on_loop == [False]

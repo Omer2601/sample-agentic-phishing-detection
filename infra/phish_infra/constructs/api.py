@@ -155,14 +155,20 @@ class ScanApi(Construct):
             data.artifacts_bucket.arn_for_objects("scans/*/report.html"),
             data.artifacts_bucket.arn_for_objects("batches/*/report.html"),
         ]
-        fn.add_to_role_policy(iam.PolicyStatement(actions=["s3:PutObject"], resources=report_keys))
-        # Presigned GET for screenshots and reports, the only artifacts the API hands out.
+        # The live phishing feed cache (backend api/feed.py CACHE_KEY): one exact object key.
+        feed_cache_key = data.artifacts_bucket.arn_for_objects("feed/live-phishing.json")
+        fn.add_to_role_policy(
+            iam.PolicyStatement(actions=["s3:PutObject"], resources=[*report_keys, feed_cache_key])
+        )
+        # Presigned GET for screenshots and reports, the only artifacts the API hands out, and
+        # the read side of the feed cache.
         fn.add_to_role_policy(
             iam.PolicyStatement(
                 actions=["s3:GetObject"],
                 resources=[
                     data.artifacts_bucket.arn_for_objects("scans/*/screenshot.png"),
                     *report_keys,
+                    feed_cache_key,
                 ],
             )
         )

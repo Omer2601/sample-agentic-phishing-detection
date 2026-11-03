@@ -95,6 +95,7 @@ class BrandCapture:
         self.failure: CaptureFailure | None = None
         self.site_block: Signal | None = None
         self._nav: dict | None = None
+        self._ended_early = False
 
     async def capture(self) -> dict:
         if self.data is not None:
@@ -111,6 +112,7 @@ class BrandCapture:
                     "capture ended after the screenshot was saved error=%s", type(exc).__name__
                 )
                 self.data = {**self._nav, "visible_text": ""}
+                self._ended_early = True
                 return self.data
             self.failure = log_capture_failure("brand_visual", exc)
             if budget.expired():
@@ -241,7 +243,11 @@ class BrandCapture:
             return "download"
         if not self.artifacts:
             return "screenshot_not_saved"
-        return "partial" if self.data.get("navigation_timed_out") else "complete"
+        # A capture that errored after the screenshot was saved kept its evidence but did not
+        # finish cleanly, so it is partial, never complete.
+        if self._ended_early or self.data.get("navigation_timed_out"):
+            return "partial"
+        return "complete"
 
     def signals(self) -> list[Signal]:
         if self.failure:
@@ -257,6 +263,7 @@ class BrandCapture:
             self.site_block,
             data.get("provider_warning"),
             browser.sibling_capture(data),
+            data.get("block_retry"),
         )
 
     def page_observed(self) -> bool:

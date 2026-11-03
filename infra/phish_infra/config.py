@@ -149,6 +149,12 @@ class AppConfig:
     # verdict is then never legitimate/allow), a download is fingerprinted and never opened, and a
     # transient DNS failure is retried once. False keeps the earlier capture behaviour.
     capture_recovery: bool = True
+    # Off by default (as upstream ships it). True: every agent Runtime gets CAPTURE_BLOCK_RETRY=1:
+    # a bot wall (403/429 block page, 503 bot-wall title, bot-check page) gets one retry in a
+    # fresh context with a desktop Chrome profile inside the same navigation budget, a browser
+    # refusal (ERR_BLOCKED_BY_CLIENT) gets the certificate-tolerant retry, and a page still behind
+    # a wall is recorded as page_state bot_blocked. The verdict logic is unchanged.
+    capture_block_retry: bool = False
     # On by default (-c directOrchestration=false for the Harness; off when agentRegistry=true).
     # True: the worker starts the dispatcher itself, alongside the pre-check, and
     # asks the orchestrator model for the verdict and the report with two Converse calls instead
@@ -305,6 +311,7 @@ def load_config(node: Node) -> AppConfig:
         app_name=app_name,
         agent_registry=agent_registry,
         capture_recovery=_as_bool(ctx("captureRecovery", True)),
+        capture_block_retry=_as_bool(ctx("captureBlockRetry", False)),
         direct_orchestration=direct_orchestration,
         local_rdap=_as_bool(ctx("localRdap", True)),
         unanimous_fast_path=unanimous_fast_path,

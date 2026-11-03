@@ -35,7 +35,7 @@ from phish_contracts.observation import (
     page_not_observed_report_note,
     untrusted_certificate_report_note,
 )
-from phish_contracts.page_state import verdict_detail
+from phish_contracts.page_state import bot_blocked_report_note, verdict_detail
 
 __all__ = [
     "ReportMissing",
@@ -77,11 +77,12 @@ def judge(verdict: Verdict, findings: Sequence[Finding]) -> Verdict:
 
 
 def report_with_note(report: str, verdict: Verdict, findings: Sequence[Finding]) -> str:
-    """The report, led by the page-not-observed and untrusted-certificate notes when they apply
-    (no-op otherwise)."""
+    """The report, led by the page-not-observed, untrusted-certificate and bot-wall notes when
+    they apply (no-op otherwise)."""
     return (
         page_not_observed_report_note(verdict, findings)
         + untrusted_certificate_report_note(verdict, findings)
+        + bot_blocked_report_note(findings)
         + report
     )
 

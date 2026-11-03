@@ -663,7 +663,7 @@ def test_web_search_stays_at_the_edge_in_a_region_without_the_connector(t):
     )
 
 
-def test_web_search_folds_into_the_tools_gateway_where_the_connector_exists(app_context):
+def test_web_search_gets_a_regional_gateway_of_its_own_where_the_connector_exists(app_context):
     app = cdk.App(context=app_context)
     stack = cdk.Stack(app, "S", env=cdk.Environment(account="123456789012", region="us-east-1"))
     cfg = load_config(app.node)
@@ -684,6 +684,20 @@ def test_web_search_folds_into_the_tools_gateway_where_the_connector_exists(app_
         "WEB_SEARCH_GATEWAY_URL"
         not in runtime_of(template, "code_analyst")["Properties"]["EnvironmentVariables"]
     )
+    # IAM is per Gateway: a web-search target on the tools Gateway would serve every specialist.
+    tools_gw, search_gw = (
+        gateway_id(template, "phish-tools"),
+        gateway_id(template, "phish-web-search"),
+    )
+    on_tools = [
+        t["Properties"]["Name"]
+        for t in template.find_resources("AWS::BedrockAgentCore::GatewayTarget").values()
+        if tools_gw in json.dumps(t["Properties"]["GatewayIdentifier"])
+    ]
+    assert on_tools == ["tools"]
+    assert search_gw in json.dumps(role_statements(template, runtime_of(template, "brand_visual")))
+    for name in ("url_analyst", "code_analyst"):
+        assert search_gw not in json.dumps(role_statements(template, runtime_of(template, name)))
 
 
 # ── dispatcher ───────────────────────────────────────────────────────────────────────────

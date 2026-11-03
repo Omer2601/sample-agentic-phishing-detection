@@ -11,6 +11,18 @@
 - A URL that answers with a file made `goto` fail with "Download is starting" (3 rows):
   open_capture cancels the browser download and fingerprints the file with one guarded,
   size-capped GET (http_probe.download_fingerprint). The file is never opened or executed.
+
+With CAPTURE_BLOCK_RETRY=1 (browser.block_retry_enabled), two more, both from the 2026-11-01
+fake-shop eval:
+- A certificate that does not match the host, reached over http://, failed as
+  net::ERR_BLOCKED_BY_CLIENT (the managed browser upgrades to https and refuses), not as a
+  certificate error, so the tolerant retry never ran. A browser refusal now gets the same one
+  retry; its `tls_certificate` type says the certificate error was not confirmed.
+- A bot wall (browser.bot_block_reason) gets one retry in a fresh context with a desktop
+  Chrome profile (user agent without the AgentCore token, en-US locale and Accept-Language,
+  New York time zone, 1366x768). Same route guard and init script. The first capture keeps its
+  whole navigation budget; the retry gets at most BLOCK_RETRY_MS of what is left, and a retry
+  that runs out or only half-renders keeps the first capture. `block_retry` records the outcome.
 """
 
 from __future__ import annotations
@@ -60,18 +72,56 @@ def s3_website_http_url(url: str) -> str:
     return urlunparse(("http", host, parsed.path, parsed.params, parsed.query, parsed.fragment))
 
 
+BLOCK_RETRY_PROFILE = "desktop_chrome_en_us"
+# Measured 2026-11-02: real recoveries finished in 2.1-6.7 s and still-blocked answers in
+# 0.5-4.5 s; the retries that ran on to the ~9 s navigation budget only timed out.
+BLOCK_RETRY_MS = 7_000
+UPGRADE_REFUSAL_CODE = "net::ERR_BLOCKED_BY_CLIENT"
+_DESKTOP_VIEWPORT = {"width": 1366, "height": 768}
+_DESKTOP_LOCALE = "en-US"
+_DESKTOP_TIMEZONE = "America/New_York"
+_DESKTOP_HEADERS = {"Accept-Language": "en-US,en;q=0.9"}
+_CHROME_MAJOR = re.compile(r"^(\d+)\.")
+
+
+def desktop_user_agent(browser_version: str) -> str:
+    """A Windows desktop Chrome user agent for the remote browser's own major version."""
+    match = _CHROME_MAJOR.match(browser_version or "")
+    major = match.group(1) if match else "130"
+    return (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+        f"Chrome/{major}.0.0.0 Safari/537.36"
+    )
+
+
 @asynccontextmanager
-async def tls_tolerant_page(page, *, init_script: str | None = None) -> AsyncIterator:
-    """A new page in a new browser context that ignores certificate errors, in the same
-    browser session as `page`. Only this context is lenient; the route guard and init script
-    are installed exactly as in browser.open_page."""
+async def alternate_page(
+    page,
+    *,
+    init_script: str | None = None,
+    ignore_https_errors: bool = False,
+    desktop_profile: bool = False,
+) -> AsyncIterator:
+    """A new page in a new browser context in the same browser session as `page`, with the
+    route guard and init script installed exactly as in browser.open_page. Only this context
+    is lenient about certificates (ignore_https_errors) or wears the desktop profile."""
     remote = page.context.browser
     if remote is None:
-        raise PlaywrightError("no browser to open a certificate-tolerant context in")
+        raise PlaywrightError("no browser to open another context in")
     # Service workers can answer requests that context.route never sees, so the guard_route
-    # SSRF check would not apply to them; this lenient context blocks them.
-    options: dict = {"ignore_https_errors": True, "service_workers": "block"}
-    if page.viewport_size:
+    # SSRF check would not apply to them; every alternate context blocks them.
+    options: dict = {"service_workers": "block"}
+    if ignore_https_errors:
+        options["ignore_https_errors"] = True
+    if desktop_profile:
+        options.update(
+            user_agent=desktop_user_agent(remote.version),
+            locale=_DESKTOP_LOCALE,
+            timezone_id=_DESKTOP_TIMEZONE,
+            extra_http_headers=dict(_DESKTOP_HEADERS),
+            viewport=dict(_DESKTOP_VIEWPORT),
+        )
+    elif page.viewport_size:
         options["viewport"] = page.viewport_size
     context = await remote.new_context(**options)
     try:
@@ -80,7 +130,12 @@ async def tls_tolerant_page(page, *, init_script: str | None = None) -> AsyncIte
             await context.add_init_script(init_script)
         yield await context.new_page()
     finally:
-        await browser._bounded("tolerant context close", context.close())
+        await browser._bounded("alternate context close", context.close())
+
+
+def tls_tolerant_page(page, *, init_script: str | None = None):
+    """A new page in a new browser context that ignores certificate errors (alternate_page)."""
+    return alternate_page(page, init_script=init_script, ignore_https_errors=True)
 
 
 class DownloadWatch:
@@ -202,11 +257,35 @@ async def open_capture(
 ) -> tuple[dict, object]:
     """(nav, page): open_url(page, url) through browser.open_with_www_sibling, recovering
     from a download (fingerprinted, never opened) and from a certificate error (one retry in a
-    certificate-tolerant context entered on `stack`, whose page is returned).
+    certificate-tolerant context entered on `stack`, whose page is returned). With
+    CAPTURE_BLOCK_RETRY on, a browser refusal also gets the tolerant retry and a bot wall one
+    retry with the desktop profile (block_retry).
 
-    prepare(page) runs on the tolerant page before it navigates (request listeners). If the
+    prepare(page) runs on a retry page before it navigates (request listeners). If the
     tolerant retry fails, or less than min_ms is left, the original failure is raised.
     """
+    nav, page = await _open_recovering(
+        stack, page, url, open_url, left_ms, min_ms, init_script, prepare, fingerprint
+    )
+    if not browser.block_retry_enabled():
+        return nav, page
+    return await _retry_bot_block(
+        stack, page, url, nav, open_url, left_ms, min_ms, init_script, prepare, fingerprint
+    )
+
+
+def _tolerant_retry_type(failure: browser.CaptureFailure) -> str | None:
+    cert_type = browser.certificate_error_type(failure)
+    if cert_type is None and browser.block_retry_enabled():
+        # Chrome's http->https upgrade reports a certificate it refuses as BLOCKED_BY_CLIENT.
+        if failure.code == UPGRADE_REFUSAL_CODE:
+            return browser.TLS_UNCONFIRMED
+    return cert_type
+
+
+async def _open_recovering(
+    stack, page, url, open_url, left_ms, min_ms, init_script, prepare, fingerprint
+) -> tuple[dict, object]:
     if not capture_recovery_enabled():
         # Earlier behaviour: a download or a certificate error fails the capture as it is.
         nav = await browser.open_with_www_sibling(
@@ -223,7 +302,7 @@ async def open_capture(
         if watch.started(exc):
             return await download_nav(watch, url, left_ms, fingerprint), page
         failure = browser.classify_failure(exc)
-        cert_type = browser.certificate_error_type(failure)
+        cert_type = _tolerant_retry_type(failure)
         if cert_type is None:
             raise
         if left_ms() < min_ms:
@@ -253,3 +332,64 @@ async def open_capture(
         return {**nav, "tls_certificate": cert}, tolerant
     finally:
         watch.close()
+
+
+async def _retry_bot_block(
+    stack, page, url, nav, open_url, left_ms, min_ms, init_script, prepare, fingerprint
+) -> tuple[dict, object]:
+    """One retry with the desktop profile when the page is a bot wall. The retry's page is
+    kept when it navigated (recovered or still blocked); a failed retry keeps the first."""
+    reason = browser.bot_block_reason(nav)
+    if reason is None or browser.sibling_capture(nav):
+        return nav, page
+    record = {
+        "reason": reason,
+        "first_status": nav.get("status"),
+        "profile": BLOCK_RETRY_PROFILE,
+    }
+    if left_ms() < min_ms:
+        logger.info("bot-wall retry skipped: %d ms left", left_ms())
+        return {**nav, "block_retry": {**record, "outcome": "skipped_no_time"}}, page
+    tolerant = isinstance(nav.get("tls_certificate"), dict)
+    logger.info(
+        "bot wall reason=%s status=%s; retrying with the desktop profile",
+        reason,
+        nav.get("status"),
+    )
+    restore = None
+    retry_s = min(BLOCK_RETRY_MS, left_ms()) / 1000
+    try:
+        async with asyncio.timeout(retry_s):
+            alt = await stack.enter_async_context(
+                alternate_page(
+                    page,
+                    init_script=init_script,
+                    ignore_https_errors=tolerant,
+                    desktop_profile=True,
+                )
+            )
+            if prepare is not None:
+                restore = prepare(alt)
+            if left_ms() < min_ms:
+                raise PlaywrightError(f"no time left after context setup: {left_ms()} ms")
+            retried = await _open_or_download(alt, url, open_url, left_ms, fingerprint)
+        if retried.get("navigation_timed_out"):
+            raise TimeoutError("the retry only half-rendered before its navigation timed out")
+    except Exception as exc:  # noqa: BLE001 - the first, blocked capture is still the capture
+        if callable(restore):
+            restore()
+        timed_out = isinstance(exc, TimeoutError)
+        failure = browser.classify_failure(exc)
+        logger.info(
+            "bot-wall retry failed category=%s code=%s budget_ms=%d",
+            failure.category,
+            failure.code,
+            int(retry_s * 1000),
+        )
+        outcome = "retry_timed_out" if timed_out else "retry_failed"
+        return {**nav, "block_retry": {**record, "outcome": outcome}}, page
+    if tolerant:
+        retried = {**retried, "tls_certificate": nav["tls_certificate"]}
+    outcome = "still_blocked" if browser.bot_block_reason(retried) else "recovered"
+    logger.info("bot-wall retry outcome=%s status=%s", outcome, retried.get("status"))
+    return {**retried, "block_retry": {**record, "outcome": outcome}}, alt

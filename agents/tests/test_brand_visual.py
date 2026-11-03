@@ -411,6 +411,16 @@ def short_deadline(monkeypatch):
     monkeypatch.setattr(brand_agent, "DEADLINE_MARGIN_S", 3.0)
 
 
+@pytest.fixture
+def wide_deadline(monkeypatch):
+    from phish_agents.common import server
+
+    # For tests whose fake capture is instant: 6 / 3 s still flaked in the full pre-push run at
+    # load average 30 to 90 (the loop stalled past the settle window). Only wall time grows.
+    monkeypatch.setattr(server, "PAGE_DEADLINE_S", 20.0)
+    monkeypatch.setattr(brand_agent, "DEADLINE_MARGIN_S", 10.0)
+
+
 async def run_stuck(page, url="https://example.com"):
     from phish_agents.common import server as server_module
 
@@ -464,7 +474,7 @@ async def test_capture_still_running_at_the_model_deadline_is_settled_into_the_f
     assert finding.capture_status == "complete"
 
 
-@pytest.mark.usefixtures("short_deadline")
+@pytest.mark.usefixtures("wide_deadline")
 async def test_deadline_after_a_partial_capture_reports_partial():
     page = FakePage(goto_error=nav_timeout(), final_url="https://slow.example/")
     finding, _ = await run_stuck(page, url="https://slow.example/")
@@ -472,7 +482,7 @@ async def test_deadline_after_a_partial_capture_reports_partial():
     assert "capture_status=partial" in finding.signals[0].evidence
 
 
-@pytest.mark.usefixtures("short_deadline")
+@pytest.mark.usefixtures("wide_deadline")
 async def test_deadline_after_a_failed_capture_keeps_the_capture_signal():
     from playwright.async_api import Error
 
@@ -544,7 +554,7 @@ async def test_capture_status_on_a_failed_capture_finding():
     assert finding.capture_status.startswith("failed (blocked_by_browser")
 
 
-@pytest.mark.usefixtures("short_deadline")
+@pytest.mark.usefixtures("wide_deadline")
 async def test_capture_status_on_the_deadline_finding():
     finding, _ = await run_stuck(FakePage())
     assert finding.status == "error" and finding.capture_status == "complete"
@@ -613,3 +623,12 @@ async def test_a_setup_failure_starts_no_capture_to_orphan():
     # An orphaned eager capture would reach open_page within this wait.
     await asyncio.sleep(0.5)
     assert opened == []
+
+
+async def test_an_error_after_the_screenshot_was_saved_is_a_partial_capture():
+    s3 = FakeS3()
+    cap = brand_capture(FakePage(inner_text_error=RuntimeError("session dropped")), s3)
+    data = await cap.capture()
+    # The screenshot evidence is kept, but the capture did not finish cleanly.
+    assert SHOT_KEY in s3.objects and data["visible_text"] == ""
+    assert cap.failure is None and cap.capture_status() == "partial"

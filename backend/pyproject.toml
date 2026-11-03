@@ -2,7 +2,7 @@
 name = "phish-backend"
 version = "2.0.0"
 requires-python = ">=3.13"
-dependencies = ["phish-contracts", "boto3==1.43.105", "pydantic==2.13.5"]
+dependencies = ["phish-contracts", "boto3==1.43.105", "idna==3.20", "pydantic==2.13.5"]
 
 [tool.uv.sources]
 phish-contracts = { workspace = true }

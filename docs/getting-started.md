@@ -28,17 +28,17 @@ From an empty AWS account to your first verdict, your first API call and a clean
 
    ```bash
    uv sync --all-packages
-   export AWS_REGION=<your-region>
-   uv run python scripts/preflight.py --profile <your-profile> --region "$AWS_REGION"
+   export AWS_REGION=<your-region> AWS_PROFILE=<your-profile>   # the CDK, AWS CLI and awscurl commands below all use this
+   uv run python scripts/preflight.py --profile "$AWS_PROFILE" --region "$AWS_REGION"
    ```
 
-3. **Bootstrap** AWS CDK in your Region and in `us-east-1`, once per account. The application deploys to your Region. One small stack, `PhishTriageAgenticEdge`, goes to `us-east-1` because AWS requires the AWS WAF web ACL for CloudFront to be created there. If your Region is `us-east-1`, one bootstrap covers both:
+3. **Bootstrap** AWS CDK in your Region and in `us-east-1`, once per account. The application deploys to your Region. One small stack, `PhishTriageAgenticEdge`, goes to `us-east-1` because AWS requires the AWS WAF web ACL for CloudFront to be created there. If your Region is `us-east-1`, one bootstrap covers both. Skip this step if `preflight.py` reports `PASS` for CDK bootstrap in both Regions; re-bootstrapping a shared account can upgrade its `CDKToolkit` stack:
 
    ```bash
    npx aws-cdk@2.1143.0 bootstrap aws://<account-id>/$AWS_REGION aws://<account-id>/us-east-1
    ```
 
-4. **Deploy** (about 8 minutes the first time, measured in our test account; see [docs/deploy.md](deploy.md#3-deploy-about-8-minutes)):
+4. **Deploy** (8 minutes in our test account with warm container caches, 16 minutes from a fresh clone on 2026-11-03, most of it building the container images; see [docs/deploy.md](deploy.md#3-deploy-about-8-minutes)):
 
    ```bash
    cd infra
@@ -46,9 +46,17 @@ From an empty AWS account to your first verdict, your first API call and a clean
    npx aws-cdk@2.1143.0 deploy --all -c owner=<team or alias>
    ```
 
-   `owner` becomes the `Owner` tag on every resource, so cost shows up against you in Cost Explorer.
+   `owner` becomes the `Owner` tag on every resource, so cost shows up against you in Cost Explorer. `cdk deploy` stops to ask you to approve IAM and security group changes; in CI or a script, review the changes and add `--require-approval never`.
 
 5. **Sign up**: open the `WebUrl` stack output, enter your email on the Register page, and sign in with the temporary password Cognito emails you. You choose a new password at first sign-in, which proves you own the inbox. An authenticator app (TOTP) is offered and optional unless you deployed with `-c mfa=required`.
+
+   <a id="create-a-user-without-email"></a>**A user without an inbox** (for a demo or test account): create it directly. `UserPoolId` is a stack output.
+
+   ```bash
+   aws cognito-idp admin-create-user --user-pool-id <UserPoolId> --username <email> \
+     --user-attributes Name=email,Value=<email> Name=email_verified,Value=true --message-action SUPPRESS
+   aws cognito-idp admin-set-user-password --user-pool-id <UserPoolId> --username <email> --password '<password>' --permanent
+   ```
 
 ## Your first scan
 
@@ -84,6 +92,8 @@ How a gate should read the answer:
    aws iam attach-role-policy --role-name <your-role> --policy-arn "$(out ApiInvokePolicyArn)"
    # or: aws iam attach-user-policy --user-name <your-user> --policy-arn "$(out ApiInvokePolicyArn)"
    ```
+
+   Skip the attach if your principal already has `execute-api:Invoke` on the API, for example an administrator role. For IAM Identity Center (SSO) roles, add the policy to the permission set instead of attaching it to the role.
 
 2. Submit a scan and poll it. `awscurl` signs with the credentials your AWS CLI already uses:
 

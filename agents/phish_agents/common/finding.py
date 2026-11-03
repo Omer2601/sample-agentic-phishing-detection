@@ -67,6 +67,30 @@ def build_finding(
     """extra_signals are facts measured in code (site_unreachable); they are added
     whatever the model wrote, and skipped when the model already used the same name."""
     extra = list(extra_signals or [])
+    if draft is None and not blocked:
+        # No refusal: the model answered twice without a usable structured reply (for
+        # example cut short by max_tokens), so this is an analysis error, not a block.
+        return Finding(
+            agent=agent,
+            status=FindingStatus.ERROR,
+            verdict=VerdictLabel.UNKNOWN,
+            confidence=0,
+            signals=[
+                Signal(
+                    name="analysis_error",
+                    severity=Severity.LOW,
+                    evidence=(
+                        "The model returned no usable structured answer twice, including a "
+                        "retry (for example a truncated or malformed reply)."
+                    ),
+                ),
+                *extra,
+            ],
+            artifacts=artifacts,
+            usage=usage,
+            latency_ms=_elapsed_ms(started),
+            calls=calls,
+        )
     if blocked or draft is None:
         return Finding(
             agent=agent,

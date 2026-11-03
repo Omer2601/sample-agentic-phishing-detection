@@ -129,3 +129,35 @@ def test_run_build_step_starts_the_named_tool_with_the_given_args(monkeypatch, t
     common.run_build_step(["uv", "export", "a b;c"], tmp_path)
     common.run_build_step(["npm", "ci"], tmp_path)
     assert seen == [(["uv", "export", "a b;c"], tmp_path), (["npm", "ci"], tmp_path)]
+
+
+def test_python_function_role_writes_only_to_its_own_log_group(test_env):
+    from aws_cdk import aws_kms as kms
+    from aws_cdk import aws_lambda as lambda_
+
+    from phish_infra.common import python_function
+
+    app = cdk.App()
+    stack = cdk.Stack(app, "S", env=test_env)
+    python_function(
+        stack,
+        "Fn",
+        cfg=load_config(app.node),
+        key=kms.Key(stack, "Key"),
+        code=lambda_.Code.from_inline("def handler(e, c): pass"),
+        handler="index.handler",
+        description="test",
+        environment={},
+        timeout=cdk.Duration.seconds(5),
+    )
+    template = Template.from_stack(stack)
+    # No AWSLambdaBasicExecutionRole (CreateLogGroup on *): once CloudFormation deletes the
+    # group, the function cannot recreate it under the name the next deployment creates.
+    [role] = template.find_resources("AWS::IAM::Role").values()
+    assert "ManagedPolicyArns" not in role["Properties"]
+    text = str(template.to_json())
+    assert "logs:CreateLogGroup" not in text
+    [policy] = role["Properties"]["Policies"]
+    [statement] = policy["PolicyDocument"]["Statement"]
+    assert statement["Action"] == ["logs:CreateLogStream", "logs:PutLogEvents"]
+    assert "FnLogs" in str(statement["Resource"])

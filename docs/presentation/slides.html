@@ -1,0 +1,1253 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Agentic Phishing URL Detection on Amazon Bedrock AgentCore</title>
+    <!--
+  Source of the customer deck. Each <section class="slide"> is one 1920x1080 slide.
+  Speaker notes live in data-notes. Rebuild PNG, PDF and PPTX with build.py (see README.md).
+  Every number here comes from docs/evaluation.md, docs/cost.md or README.md of the sample.
+-->
+    <style>
+      @font-face {
+        font-family: "Inter";
+        src: url("assets/fonts/Inter-latin.woff2") format("woff2");
+        font-weight: 100 900;
+      }
+      @font-face {
+        font-family: "JetBrains Mono";
+        src: url("assets/fonts/JetBrainsMono-latin.woff2") format("woff2");
+        font-weight: 100 800;
+      }
+      :root {
+        --ink: #161d26;
+        --ink-2: #1d2633;
+        --ink-3: #253141;
+        --line: #2e3b4d;
+        --cloud: #f2f5f8;
+        --muted: #9aa8b8;
+        --dim: #6b7a8c;
+        --blue: #41b3ff;
+        --pink: #ff5c85;
+        --yellow: #fbd332;
+        --green: #00e500;
+        --purple: #b08cff;
+        --orange: #ff9a3c;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        background: #0e131a;
+      }
+      body {
+        font-family: "Inter", system-ui, sans-serif;
+        color: var(--cloud);
+        -webkit-font-smoothing: antialiased;
+      }
+      @page {
+        size: 1920px 1080px;
+        margin: 0;
+      }
+      .slide {
+        width: 1920px;
+        height: 1080px;
+        position: relative;
+        overflow: hidden;
+        padding: 120px 120px 110px;
+        break-after: page;
+        background:
+          radial-gradient(
+            ellipse 1100px 700px at 78% 18%,
+            rgba(65, 179, 255, 0.08),
+            transparent 70%
+          ),
+          radial-gradient(
+              circle,
+              rgba(242, 245, 248, 0.04) 1.5px,
+              transparent 1.6px
+            )
+            0 0 / 64px 64px,
+          var(--ink);
+        display: flex;
+        flex-direction: column;
+      }
+      .slide + .slide {
+        margin-top: 0;
+      }
+      .eyebrow {
+        font:
+          500 22px/1 "JetBrains Mono",
+          monospace;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--blue);
+        margin-bottom: 28px;
+      }
+      h1 {
+        font-weight: 800;
+        font-size: 88px;
+        line-height: 1.04;
+        letter-spacing: -0.025em;
+      }
+      h2 {
+        font-weight: 700;
+        font-size: 64px;
+        line-height: 1.08;
+        letter-spacing: -0.02em;
+      }
+      .lede {
+        font-size: 36px;
+        line-height: 1.4;
+        color: var(--muted);
+        font-weight: 400;
+        max-width: 1400px;
+        margin-top: 28px;
+      }
+      .blue {
+        color: var(--blue);
+      }
+      .pink {
+        color: var(--pink);
+      }
+      .yellow {
+        color: var(--yellow);
+      }
+      .green {
+        color: var(--green);
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .mono {
+        font-family: "JetBrains Mono", monospace;
+      }
+      .foot {
+        position: absolute;
+        left: 120px;
+        right: 120px;
+        bottom: 44px;
+        display: flex;
+        justify-content: space-between;
+        font:
+          500 18px/1 "JetBrains Mono",
+          monospace;
+        color: var(--dim);
+        letter-spacing: 0.04em;
+      }
+      .card {
+        background: rgba(29, 38, 51, 0.86);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+      }
+      .frame {
+        border-radius: 16px;
+        border: 1px solid rgba(65, 179, 255, 0.3);
+        box-shadow: 0 40px 90px rgba(0, 0, 0, 0.55);
+        overflow: hidden;
+        background: #0b0f16;
+      }
+      .frame img {
+        display: block;
+        width: 100%;
+      }
+      .grow {
+        flex: 1;
+      }
+      .row {
+        display: flex;
+        gap: 32px;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 22px;
+        border-radius: 999px;
+        font: 600 24px/1 "Inter";
+        border: 1px solid;
+      }
+      .dot {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+      .src {
+        font:
+          400 18px/1.5 "JetBrains Mono",
+          monospace;
+        color: var(--dim);
+        margin-top: auto;
+      }
+
+      /* title */
+      .title-wrap {
+        margin-top: auto;
+        margin-bottom: auto;
+      }
+      .title-wrap h1 {
+        font-size: 104px;
+        max-width: 1500px;
+      }
+      .pills {
+        display: flex;
+        gap: 16px;
+        margin-top: 56px;
+        flex-wrap: wrap;
+      }
+      .pill {
+        font: 500 22px/1 "JetBrains Mono";
+        color: var(--cloud);
+        padding: 14px 22px;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        background: rgba(29, 38, 51, 0.7);
+      }
+
+      /* tiles */
+      .tiles {
+        display: grid;
+        gap: 32px;
+        margin-top: 64px;
+      }
+      .tile {
+        padding: 44px 44px 48px;
+      }
+      .tile .k {
+        font: 500 22px/1 "JetBrains Mono";
+        color: var(--blue);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .tile .h {
+        font-weight: 700;
+        font-size: 40px;
+        line-height: 1.15;
+        margin-top: 22px;
+      }
+      .tile .b {
+        font-size: 28px;
+        line-height: 1.45;
+        color: var(--muted);
+        margin-top: 16px;
+      }
+
+      /* steps */
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 28px;
+        margin-top: 56px;
+      }
+      .step {
+        padding: 36px 38px 40px;
+        position: relative;
+      }
+      .step .sn {
+        font: 700 26px/1 "JetBrains Mono";
+        color: var(--ink);
+        background: var(--blue);
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+      }
+      .step .h {
+        font-weight: 700;
+        font-size: 34px;
+        margin-top: 24px;
+        line-height: 1.2;
+      }
+      .step .b {
+        font-size: 25px;
+        line-height: 1.45;
+        color: var(--muted);
+        margin-top: 12px;
+      }
+      .step.par {
+        border-color: rgba(65, 179, 255, 0.55);
+        box-shadow: inset 0 0 0 1px rgba(65, 179, 255, 0.25);
+      }
+
+      /* numbers */
+      .big {
+        font-weight: 800;
+        font-size: 150px;
+        line-height: 0.95;
+        letter-spacing: -0.04em;
+      }
+      .numgrid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 32px;
+        margin-top: 64px;
+      }
+      .num {
+        padding: 48px 44px;
+      }
+      .num .lbl {
+        font: 500 22px/1.3 "JetBrains Mono";
+        color: var(--muted);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .num .vs {
+        font-size: 28px;
+        color: var(--muted);
+        margin-top: 20px;
+        line-height: 1.4;
+      }
+      .num .vs b {
+        color: var(--cloud);
+        font-weight: 600;
+      }
+
+      /* code */
+      .code { margin: 0; overflow: hidden; font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0;
+        font:
+          500 25px/1.62 "JetBrains Mono",
+          monospace;
+        padding: 44px 48px;
+        white-space: pre;
+        color: #d7e1ec;
+      }
+      .code .c {
+        color: var(--dim);
+      }
+      .code .k {
+        color: var(--blue);
+      }
+      .code .s {
+        color: var(--yellow);
+      }
+      .code .p {
+        color: var(--pink);
+      }
+      .codehead {
+        display: flex;
+        gap: 10px;
+        padding: 22px 28px;
+        border-bottom: 1px solid var(--line);
+        align-items: center;
+      }
+      .codehead i {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--ink-3);
+        display: block;
+      }
+      .codehead span {
+        margin-left: 18px;
+        font: 500 20px/1 "JetBrains Mono";
+        color: var(--dim);
+      }
+
+      /* architecture */
+      .arch {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1920px;
+        height: 1080px;
+      }
+      .n {
+        position: absolute;
+        border-radius: 14px;
+        background: rgba(29, 38, 51, 0.95);
+        border: 1px solid var(--line);
+        padding: 14px 18px;
+      }
+      .n .t {
+        font-weight: 700;
+        font-size: 23px;
+        line-height: 1.15;
+      }
+      .n .s {
+        font-size: 18px;
+        line-height: 1.3;
+        color: var(--muted);
+        margin-top: 6px;
+      }
+      .grp {
+        position: absolute;
+        border-radius: 22px;
+        border: 1.5px dashed rgba(65, 179, 255, 0.45);
+        background: rgba(65, 179, 255, 0.04);
+      }
+      .grp .gl {
+        position: absolute;
+        top: -15px;
+        left: 22px;
+        padding: 0 12px;
+        background: var(--ink);
+        white-space: nowrap; font: 500 18px/30px "JetBrains Mono";
+        color: var(--blue);
+        letter-spacing: 0.06em;
+      }
+      .spec {
+        border-left: 6px solid;
+      }
+      .badge {
+        position: absolute;
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: var(--blue);
+        color: var(--ink);
+        font: 700 20px/38px "JetBrains Mono";
+        text-align: center;
+      }
+      .supp {
+        position: absolute;
+        left: 120px;
+        right: 120px;
+        top: 930px;
+        display: flex;
+        gap: 14px;
+        align-items: center;
+      }
+      .supp .lab {
+        font: 500 20px/1 "JetBrains Mono";
+        color: var(--dim);
+        letter-spacing: 0.06em;
+        margin-right: 8px;
+        text-transform: uppercase;
+      }
+      .supp .x {
+        font-size: 20px;
+        padding: 12px 18px;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        background: rgba(29, 38, 51, 0.8);
+        color: var(--cloud);
+      }
+      .code, .code * { font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }
+    </style>
+  </head>
+  <body>
+    <!-- 1 Title -->
+    <section
+      class="slide"
+      data-notes="This is an AWS sample you can deploy in your own account. Paste a link, get an explained phishing verdict in about 20 seconds. Three specialist agents look at the link, the page and the page's code at the same time, and an orchestrator weighs their evidence."
+    >
+      <div class="title-wrap">
+        <div class="eyebrow">AWS sample · Amazon Bedrock AgentCore</div>
+        <h1>Agentic phishing URL detection</h1>
+        <p class="lede" style="font-size: 40px; max-width: 1380px">
+          Paste a link. Get an explained verdict, the evidence behind it and a
+          plain-language report, in your own AWS account.
+        </p>
+        <div class="pills">
+          <span class="pill">Amazon Bedrock AgentCore</span>
+          <span class="pill">Claude Opus 5.5 + Sonnet 5.5</span>
+          <span class="pill">Strands Agents</span>
+          <span class="pill">AWS CDK (Python)</span>
+          <span class="pill">MIT-0</span>
+        </div>
+      </div>
+      <div class="foot">
+        <span>github.com/aws-samples/sample-agentic-phishing-detection</span
+        ><span>01</span>
+      </div>
+    </section>
+
+    <!-- 2 Problem -->
+    <section
+      class="slide"
+      data-notes="The job this sample takes on: someone reports a link, or a user posts one, and a person has to decide whether it is safe. Doing that well means opening a possibly hostile page somewhere safe, reading the link, the page and its code, and writing down why. That is slow and hard to do consistently."
+    >
+      <div class="eyebrow">The problem</div>
+      <h1 style="max-width: 1500px">
+        Every reported link needs someone to open it safely and decide.
+      </h1>
+      <div class="tiles" style="grid-template-columns: repeat(3, 1fr)">
+        <div class="card tile">
+          <div class="k">Risky to open</div>
+          <div class="h">The page itself is the threat</div>
+          <div class="b">
+            Checking a lure means loading it somewhere it cannot reach your
+            machine or your network.
+          </div>
+        </div>
+        <div class="card tile">
+          <div class="k">Many signals</div>
+          <div class="h">The link, the page and the code</div>
+          <div class="b">
+            Look-alike domains, cloned sign-in pages and forms that post
+            elsewhere each need a different eye.
+          </div>
+        </div>
+        <div class="card tile">
+          <div class="k">Needs a reason</div>
+          <div class="h">A verdict alone is not enough</div>
+          <div class="b">
+            An analyst or a publishing gate needs the evidence, so a person can
+            review the call.
+          </div>
+        </div>
+      </div>
+      <div class="foot">
+        <span>github.com/aws-samples/sample-agentic-phishing-detection</span
+        ><span>02</span>
+      </div>
+    </section>
+
+    <!-- 3 What it does -->
+    <section
+      class="slide"
+      data-notes="Three ways in: the web console for one URL, a batch of up to 200 from a CSV in the app or 1,000 through the API, and a SigV4-signed API that a pre-publish gate can call. Every answer is one of these verdicts, with a risk score and a recommended action. Dead links get a fixed answer fast."
+    >
+      <div class="eyebrow">What it does</div>
+      <h1>One link in. A verdict you can check.</h1>
+      <div class="row" style="margin-top: 48px; gap: 20px">
+        <span
+          class="chip"
+          style="
+            color: var(--pink);
+            border-color: rgba(255, 92, 133, 0.5);
+            background: rgba(255, 92, 133, 0.08);
+          "
+          ><i class="dot" style="background: var(--pink)"></i>Phishing ·
+          block</span
+        >
+        <span
+          class="chip"
+          style="
+            color: var(--yellow);
+            border-color: rgba(251, 211, 50, 0.5);
+            background: rgba(251, 211, 50, 0.08);
+          "
+          ><i class="dot" style="background: var(--yellow)"></i>Suspicious ·
+          warn</span
+        >
+        <span
+          class="chip"
+          style="
+            color: var(--green);
+            border-color: rgba(0, 229, 0, 0.45);
+            background: rgba(0, 229, 0, 0.07);
+          "
+          ><i class="dot" style="background: var(--green)"></i>Legitimate ·
+          allow</span
+        >
+        <span
+          class="chip"
+          style="color: var(--muted); border-color: var(--line)"
+          >Error 404 · Site down · Unknown</span
+        >
+      </div>
+      <div
+        class="tiles"
+        style="grid-template-columns: repeat(3, 1fr); margin-top: 56px"
+      >
+        <div class="card tile">
+          <div class="k">Scan</div>
+          <div class="h">One URL in the web console</div>
+          <div class="b">
+            Verdict, risk score, screenshot, redirect chain, code insights and a
+            report.
+          </div>
+        </div>
+        <div class="card tile">
+          <div class="k">Batch</div>
+          <div class="h">Paste a list or upload a CSV</div>
+          <div class="b">
+            Up to 200 URLs in the app, up to 1,000 through the API, with live
+            progress.
+          </div>
+        </div>
+        <div class="card tile">
+          <div class="k">API</div>
+          <div class="h">SigV4-signed REST API</div>
+          <div class="b">
+            The same API the console uses, ready for a pre-publish gate.
+          </div>
+        </div>
+      </div>
+      <div class="foot">
+        <span>github.com/aws-samples/sample-agentic-phishing-detection</span
+        ><span>03</span>
+      </div>
+    </section>
+
+    <!-- 4 Architecture -->
+    <section
+      class="slide"
+      data-notes="The default path. Web users come through CloudFront and AWS WAF to a web tier that signs them in with Cognito and signs API calls with SigV4; API clients call API Gateway directly with SigV4. The API checks the URL with a guardrail, stores it in DynamoDB and queues it on SQS. The worker Lambda starts a pre-check and the three specialists on AgentCore Runtime at the same time. The two page specialists capture the page through their own copy of the tools server, which drives AgentCore Browser. The worker then asks the orchestrator model on Amazon Bedrock for the verdict and the report, which the output guardrail screens. An AgentCore Harness path is deployed on standby and is opt-in."
+    >
+      <div class="eyebrow">Architecture · default path</div>
+      <h2>The page only ever opens in AgentCore Browser</h2>
+      <svg
+        class="arch"
+        viewBox="0 0 1920 1080"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          <marker
+            id="ah"
+            viewBox="0 0 10 10"
+            refX="9"
+            refY="5"
+            markerWidth="9"
+            markerHeight="9"
+            orient="auto-start-reverse"
+          >
+            <path d="M0 0L10 5L0 10z" fill="#41B3FF" />
+          </marker>
+          <marker
+            id="ag"
+            viewBox="0 0 10 10"
+            refX="9"
+            refY="5"
+            markerWidth="9"
+            markerHeight="9"
+            orient="auto-start-reverse"
+          >
+            <path d="M0 0L10 5L0 10z" fill="#6B7A8C" />
+          </marker>
+        </defs>
+        <g fill="none" stroke-width="2.5">
+          <path d="M320 368 H372" stroke="#41B3FF" marker-end="url(#ah)" />
+          <path d="M490 418 V462" stroke="#41B3FF" marker-end="url(#ah)" />
+          <path d="M610 512 H770 V572" stroke="#41B3FF" marker-end="url(#ah)" />
+          <path d="M320 632 H652" stroke="#41B3FF" marker-end="url(#ah)" />
+          <path d="M880 632 H922" stroke="#41B3FF" marker-end="url(#ah)" />
+          <path d="M1090 632 H1132" stroke="#41B3FF" marker-end="url(#ah)" />
+          <path
+            d="M1320 600 H1350 V356 H1392"
+            stroke="#41B3FF"
+            marker-end="url(#ah)"
+          />
+          <path d="M1350 424 H1392" stroke="#41B3FF" marker-end="url(#ah)"/>
+      <path d="M1350 500 H1392" stroke="#41B3FF" marker-end="url(#ah)" />
+          <path d="M1350 580 H1392" stroke="#41B3FF" marker-end="url(#ah)" />
+          <path
+            d="M1320 660 H1350 V846 H1392"
+            stroke="#41B3FF"
+            marker-end="url(#ah)"
+          />
+          <path
+            d="M1770 500 H1786 V660 H1772"
+            stroke="#6B7A8C"
+            marker-end="url(#ag)"
+          />
+          <path d="M1770 580 H1786" stroke="#6B7A8C" />
+          <path d="M1590 706 V754" stroke="#6B7A8C" marker-end="url(#ag)" />
+        </g>
+      </svg>
+      <div
+        class="n"
+        style="left: 120px; top: 322px; width: 200px; height: 92px"
+      >
+        <div class="t">Web users</div>
+        <div class="s">browser</div>
+      </div>
+      <div
+        class="n"
+        style="left: 120px; top: 586px; width: 200px; height: 92px"
+      >
+        <div class="t">API clients</div>
+        <div class="s">IAM principals</div>
+      </div>
+      <div
+        class="n"
+        style="left: 370px; top: 314px; width: 240px; height: 108px"
+      >
+        <div class="t">CloudFront + AWS WAF</div>
+        <div class="s">managed rules</div>
+      </div>
+      <div
+        class="n"
+        style="left: 370px; top: 466px; width: 240px; height: 92px"
+      >
+        <div class="t">Web tier Lambda</div>
+        <div class="s">Cognito sign-in</div>
+      </div>
+      <div
+        class="n"
+        style="left: 656px; top: 576px; width: 224px; height: 112px"
+      >
+        <div class="t">API Gateway + API Lambda</div>
+        <div class="s">SigV4, input guardrail</div>
+      </div>
+      <div
+        class="n"
+        style="left: 926px; top: 578px; width: 164px; height: 108px"
+      >
+        <div class="t">Amazon SQS</div>
+        <div class="s">scan queue</div>
+      </div>
+      <div
+        class="n"
+        style="left: 1136px; top: 576px; width: 184px; height: 112px"
+      >
+        <div class="t">Worker Lambda</div>
+        <div class="s">25 at once</div>
+      </div>
+      <div class="badge" style="left: 1290px; top: 526px">3</div>
+      <div class="badge" style="left: 1290px; top: 700px">6</div>
+      <div class="badge" style="left: 1795px; top: 604px">4</div>
+      <div
+        class="grp"
+        style="left: 1380px; top: 298px; width: 420px; height: 452px"
+      >
+        <div class="gl">AGENTCORE RUNTIME · IN PARALLEL</div>
+      </div>
+      <div
+        class="n"
+        style="
+          left: 1396px;
+          top: 328px;
+          width: 374px;
+          height: 56px;
+          padding: 9px 16px;
+        "
+      >
+        <div class="t" style="font-size: 21px">Tools server · pre-check</div>
+      </div>
+      <div
+        class="n spec"
+        style="
+          left: 1396px;
+          top: 396px;
+          width: 374px;
+          height: 56px;
+          padding: 9px 16px;
+          border-left-color: #b08cff;
+        "
+      >
+        <div class="t" style="font-size: 21px">
+          url_analyst
+          <span class="muted" style="font-weight: 400">· the link</span>
+        </div>
+      </div>
+      <div
+        class="n spec"
+        style="
+          left: 1396px;
+          top: 474px;
+          width: 374px;
+          height: 56px;
+          padding: 9px 16px;
+          border-left-color: #ff5c85;
+        "
+      >
+        <div class="t" style="font-size: 21px">
+          brand_visual
+          <span class="muted" style="font-weight: 400">· the page</span>
+        </div>
+      </div>
+      <div
+        class="n spec"
+        style="
+          left: 1396px;
+          top: 554px;
+          width: 374px;
+          height: 56px;
+          padding: 9px 16px;
+          border-left-color: #00e500;
+        "
+      >
+        <div class="t" style="font-size: 21px">
+          code_analyst
+          <span class="muted" style="font-weight: 400">· the code</span>
+        </div>
+      </div>
+      <div
+        class="n"
+        style="
+          left: 1396px;
+          top: 632px;
+          width: 374px;
+          height: 74px;
+          padding: 9px 16px;
+        "
+      >
+        <div class="t" style="font-size: 21px">Tools server copies</div>
+        <div class="s" style="margin-top: 2px">capture page and code</div>
+      </div>
+      <div
+        class="n"
+        style="
+          left: 1396px;
+          top: 732px;
+          width: 374px;
+          height: 0;
+          padding: 0;
+          border: 0;
+        "
+      ></div>
+      <div
+        class="n"
+        style="
+          left: 1396px;
+          top: 760px;
+          width: 374px;
+          height: 56px;
+          padding: 9px 16px;
+          border-color: rgba(65, 179, 255, 0.5);
+        "
+      >
+        <div class="t" style="font-size: 21px">
+          AgentCore Browser
+          <span class="muted" style="font-weight: 400">· isolated</span>
+        </div>
+      </div>
+      <div
+        class="n"
+        style="
+          left: 1396px;
+          top: 822px;
+          width: 374px;
+          height: 0;
+          padding: 0;
+          border: 0;
+        "
+      ></div>
+      <div
+        class="n"
+        style="
+          left: 1396px;
+          top: 808px;
+          width: 0;
+          height: 0;
+          padding: 0;
+          border: 0;
+        "
+      ></div>
+      <div
+        class="n"
+        style="
+          left: 1396px;
+          top: 836px;
+          width: 404px;
+          height: 76px;
+          padding: 10px 16px;
+          border-color: rgba(255, 154, 60, 0.6);
+        "
+      >
+        <div class="t" style="font-size: 21px">
+          Orchestrator · Claude Opus 5.5
+        </div>
+        <div class="s" style="margin-top: 2px">
+          Amazon Bedrock, verdict then report
+        </div>
+      </div>
+      <div class="supp">
+        <span class="lab">Supporting</span><span class="x">DynamoDB</span
+        ><span class="x">Amazon S3</span><span class="x">AgentCore Memory</span
+        ><span class="x">Bedrock Guardrails</span><span class="x">AWS KMS</span
+        ><span class="x">CloudWatch</span
+        ><span class="x" style="color: var(--muted)">Harness path: opt-in</span>
+      </div>
+      <div class="foot">
+        <span>Source: infra/ and docs/architecture.md</span><span>04</span>
+      </div>
+    </section>
+
+    <!-- 5 Scan flow -->
+    <section
+      class="slide"
+      data-notes="One scan, step by step. The pre-check and the three specialists start together, so a scan waits for about the slowest specialist rather than the sum. The verdict is stored and shown first; the report follows and is screened by a guardrail. When all three specialists agree with high confidence that a page is legitimate, the verdict is stored without the orchestrator's verdict turn."
+    >
+      <div class="eyebrow">How a single scan flows</div>
+      <h2>Six steps from paste to verdict</h2>
+      <div class="steps">
+        <div class="card step">
+          <div class="sn">1</div>
+          <div class="h">Submit</div>
+          <div class="b">
+            In the console or the API. A guardrail checks the URL, then it is
+            stored and queued.
+          </div>
+        </div>
+        <div class="card step">
+          <div class="sn">2</div>
+          <div class="h">Queue</div>
+          <div class="b">
+            The worker takes it from Amazon SQS, up to 25 scans at once by
+            default.
+          </div>
+        </div>
+        <div class="card step par">
+          <div class="sn">3</div>
+          <div class="h">Pre-check + 3 specialists</div>
+          <div class="b">
+            All start together. A 404 or a dead site ends here with a fixed
+            answer.
+          </div>
+        </div>
+        <div class="card step">
+          <div class="sn">4</div>
+          <div class="h">Capture</div>
+          <div class="b">
+            The page specialists capture the page through their own tools server
+            copy.
+          </div>
+        </div>
+        <div class="card step">
+          <div class="sn">5</div>
+          <div class="h">Isolated browser</div>
+          <div class="b">
+            AgentCore Browser loads it. Nothing is typed, submitted or solved.
+          </div>
+        </div>
+        <div class="card step">
+          <div class="sn">6</div>
+          <div class="h">Judge, then explain</div>
+          <div class="b">
+            The orchestrator returns the verdict first, then a report a
+            guardrail screens.
+          </div>
+        </div>
+      </div>
+      <div class="foot">
+        <span>Source: README.md, docs/architecture.md</span><span>05</span>
+      </div>
+    </section>
+
+    <!-- 6 Verdict -->
+    <section
+      class="slide"
+      data-notes="A real result from a test stack. The verdict, the risk score, the confidence and the recommended action come first. Links in model-written text are defanged by the app; the address line here was defanged for the slide. Every result carries the AI output, human review required notice."
+    >
+      <div class="eyebrow">The verdict</div>
+      <h2>Verdict first. Evidence and report right behind it.</h2>
+      <div class="frame" style="margin-top: 64px">
+        <img
+          src="assets/verdict.png"
+          alt="Result card: Phishing, risk 93 of 100, high confidence, recommended action Block, AI output human review required"
+        />
+      </div>
+      <div
+        class="row"
+        style="
+          margin-top: 44px;
+          gap: 56px;
+          font-size: 28px;
+          color: var(--muted);
+        "
+      >
+        <span><b style="color: var(--cloud)">Risk score</b> 0 to 100</span>
+        <span
+          ><b style="color: var(--cloud)">Action</b> block, warn or allow</span
+        >
+        <span
+          ><b style="color: var(--cloud)">Report</b> written after the verdict,
+          screened</span
+        >
+      </div>
+      <div class="foot">
+        <span>Web console, dark theme. URL defanged for this slide.</span
+        ><span>06</span>
+      </div>
+    </section>
+
+    <!-- 7 Specialists -->
+    <section
+      class="slide"
+      data-notes="Each specialist checks one thing with a short, focused prompt, so its evidence is easy to check. The orchestrator is the judge: it holds the findings to a quality bar, spots what one agent missed and settles disagreements, like the URL analyst's suspicious against the page specialists' phishing here."
+    >
+      <div class="eyebrow">Three specialists, one judge</div>
+      <h2>Each agent checks one thing</h2>
+      <div
+        class="row"
+        style="margin-top: 56px; gap: 48px; align-items: flex-start"
+      >
+        <div
+          style="width: 560px; display: flex; flex-direction: column; gap: 18px"
+        >
+          <div
+            class="card"
+            style="padding: 20px 28px; border-left: 6px solid var(--purple)"
+          >
+            <div style="font-weight: 700; font-size: 28px">url_analyst</div>
+            <div
+              style="
+                font-size: 22px;
+                color: var(--muted);
+                margin-top: 6px;
+                line-height: 1.4;
+              "
+            >
+              Look-alike domains, risky hosting, domain age, redirects
+            </div>
+          </div>
+          <div
+            class="card"
+            style="padding: 20px 28px; border-left: 6px solid var(--pink)"
+          >
+            <div style="font-weight: 700; font-size: 28px">brand_visual</div>
+            <div
+              style="
+                font-size: 22px;
+                color: var(--muted);
+                margin-top: 6px;
+                line-height: 1.4;
+              "
+            >
+              Brand impersonation, fake sign-in pages, scare copy
+            </div>
+          </div>
+          <div
+            class="card"
+            style="padding: 20px 28px; border-left: 6px solid var(--green)"
+          >
+            <div style="font-weight: 700; font-size: 28px">code_analyst</div>
+            <div
+              style="
+                font-size: 22px;
+                color: var(--muted);
+                margin-top: 6px;
+                line-height: 1.4;
+              "
+            >
+              Forms posting elsewhere, keyloggers, obfuscation
+            </div>
+          </div>
+          <div
+            class="card"
+            style="padding: 20px 28px; border-left: 6px solid var(--orange)"
+          >
+            <div style="font-weight: 700; font-size: 28px">orchestrator</div>
+            <div
+              style="
+                font-size: 22px;
+                color: var(--muted);
+                margin-top: 6px;
+                line-height: 1.4;
+              "
+            >
+              Judges the findings, gives the verdict, writes the report
+            </div>
+          </div>
+        </div>
+        <div class="grow"><div class="frame">
+          <img
+            src="assets/specialists.png"
+            alt="Specialist confidence chart: URL analyst suspicious 72 percent, brand and visual phishing 96 percent, code analyst phishing 88 percent"
+          />
+        </div>
+        <p style="margin-top:40px;font-size:30px;line-height:1.45;color:var(--muted)">In this scan the specialists disagreed: the link alone looked <span class="yellow">suspicious</span>, the page and its code looked like <span class="pink">phishing</span>. The orchestrator weighed the evidence and returned <b style="color:var(--cloud)">phishing, risk 93</b>.</p>
+        </div>
+      </div>
+      <div class="foot">
+        <span
+          >Specialists: Claude Sonnet 5.5 · Orchestrator: Claude Opus 5.5</span
+        ><span>07</span>
+      </div>
+    </section>
+
+    <!-- 8 Batch -->
+    <section
+      class="slide"
+      data-notes="A batch is many single scans on the same queue and the same worker, so there is one code path. Paste URLs or upload a CSV; the app polls the batch every 2 seconds and shows counts by verdict, timing and token cost; a downloadable report closes it out. A sweeper re-queues stuck scans so no batch is left hanging."
+    >
+      <div class="eyebrow">Batch</div>
+      <h2>Hundreds of links, one queue, one summary</h2>
+      <div
+        class="row"
+        style="margin-top: 52px; gap: 48px; align-items: flex-start"
+      >
+        <div
+          style="
+            width: 480px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            font-size: 28px;
+            line-height: 1.4;
+          "
+        >
+          <div>
+            <div class="mono blue" style="font-size: 22px">01 · IN</div>
+            <div style="margin-top: 8px">
+              Paste URLs or upload a CSV. Up to 200 in the app, 1,000 by API.
+            </div>
+          </div>
+          <div>
+            <div class="mono blue" style="font-size: 22px">02 · QUEUE</div>
+            <div style="margin-top: 8px">
+              One scan per URL on the same SQS queue and worker.
+            </div>
+          </div>
+          <div>
+            <div class="mono blue" style="font-size: 22px">03 · PROGRESS</div>
+            <div style="margin-top: 8px">
+              Counts by verdict, timing and cost update every 2 seconds.
+            </div>
+          </div>
+          <div>
+            <div class="mono blue" style="font-size: 22px">04 · SUMMARY</div>
+            <div style="margin-top: 8px">
+              A per-URL table and a downloadable report.
+            </div>
+          </div>
+        </div>
+        <div class="frame grow">
+          <img
+            src="assets/batch.png"
+            alt="Finished 8-URL batch: 3 phishing, 2 suspicious, 1 legitimate, 1 Error 404, 1 Site down, with risk, time and cost per URL"
+          />
+        </div>
+      </div>
+      <div class="foot">
+        <span>Web console, earlier test run. URLs defanged for this slide.</span
+        ><span>08</span>
+      </div>
+    </section>
+
+    <!-- 9 API -->
+    <section
+      class="slide"
+      data-notes="This is the README example. Attach the ApiInvokePolicyArn stack output to the role you call with, post a URL, poll until it is complete, and read the verdict. A pre-publish gate holds a link for review when the scan failed, the action is block or warn, the risk is 70 or more, or the page was not observed."
+    >
+      <div class="eyebrow">API</div>
+      <h2>Every route is SigV4. Post, poll, read.</h2>
+      <div class="card" style="margin-top: 52px; overflow: hidden">
+        <div class="codehead">
+          <i></i><i></i><i></i><span>README.md · Use the API</span>
+        </div>
+        <pre class="code"><span class="k">id</span>=$(awscurl --service execute-api --region <span class="s">"$AWS_REGION"</span> -X POST <span class="s">"$API/scan"</span> \
+  -H <span class="s">'Content-Type: application/json'</span> -d <span class="s">'{"url": "https://example.com"}'</span> | jq -r .scan_id)
+
+<span class="c"># poll until the scan is COMPLETE or FAILED</span>
+until awscurl --service execute-api --region <span class="s">"$AWS_REGION"</span> <span class="s">"$API/scans/$id"</span> &gt; scan.json &amp;&amp;
+  jq -e <span class="s">'.status == "FAILED" or .status == "COMPLETE"'</span> scan.json &gt; /dev/null; do sleep 3; done
+
+jq <span class="s">'{status, verdict: .verdict.verdict, risk: .verdict.risk_score,
+     action: .verdict.action, page_observed: .verdict.page_observed}'</span> scan.json</pre>
+      </div>
+      <p
+        style="
+          margin-top: 40px;
+          font-size: 28px;
+          line-height: 1.45;
+          color: var(--muted);
+          max-width: 1600px;
+        "
+      >
+        <b style="color: var(--cloud)">Pre-publish gate:</b> hold for a person
+        when the scan failed, the action is <span class="yellow">warn</span> or
+        <span class="pink">block</span>, the risk is 70 or more, or the page was
+        not observed.
+      </p>
+      <div class="foot">
+        <span>Batches, idempotent retries and lookups: docs/api.md</span
+        ><span>09</span>
+      </div>
+    </section>
+
+    <!-- 10 Results -->
+<section class="slide" data-notes="Measured on 2026-11-03 on a test stack in us-west-2: the same 110 URLs, one configuration after another. With every latency optimization on, the median scan from worker start to verdict was 20.1 s and 23.4 s in two runs, at about 9 cents of model tokens per scan. With them all off: 41.5 s and about 13 cents. Accuracy did not move: 47 of 52 live phishing URLs caught and the same 2 of 50 false positives in every arm. Queue wait is not included in scan time.">
+  <div class="eyebrow">Measured results · latency flags on vs off</div>
+  <h2>About twice as fast and a third cheaper, same accuracy</h2>
+  <div class="numgrid">
+    <div class="card num"><div class="lbl">Median scan time</div><div class="big blue" style="margin-top:30px;font-size:112px;white-space:nowrap">20 to 23<span style="font-size:56px"> s</span></div><div class="vs">all on, two runs · vs <b>41.5 s</b> all off</div></div>
+    <div class="card num"><div class="lbl">Model cost per scan</div><div class="big blue" style="margin-top:30px">$0.09</div><div class="vs">mean, all on · vs <b>$0.13</b> all off</div></div>
+    <div class="card num"><div class="lbl">Phishing caught</div><div class="big green" style="margin-top:30px">47<span style="font-size:72px" class="muted"> / 52</span></div><div class="vs">on and off alike · false positives <b>2 of 50</b> in both</div></div>
+  </div>
+  <p style="margin-top:40px;margin-bottom:24px;font-size:28px;line-height:1.45;color:var(--muted);max-width:1640px">Of the latency flags, only <span class="mono blue" style="font-size:26px">directOrchestration</span> has a clearly measured effect on its own: off, it added about 8 to 11 s at the median and about 47% more cost. The others were inside run-to-run noise and are not separately measured.</p>
+  <div class="src">2026-11-03, test stack, us-west-2, 110 URLs (60 phishing, 50 legitimate; 8 dead left out), episodic memory off, 25 scans in flight. Scan time is worker start to verdict. Source: docs/evaluation.md.</div>
+  <div class="foot"><span></span><span>10</span></div>
+</section>
+
+<!-- 11 Accuracy at scale -->
+<section class="slide" data-notes="The larger run on the same day: 448 URLs submitted at once, 407 live in both runs, comparing the current default with the previous one. Caught means a phishing verdict, or suspicious with risk 50 or more, the verdict a pre-publish gate holds for review. The differences of 3 to 4 URLs between the two runs are within run-to-run variation on live sites. The labelled set is private because live phishing URLs are not committed.">
+  <div class="eyebrow">Measured results · 407 live URLs</div>
+  <h2>What a pre-publish gate would hold</h2>
+  <div class="numgrid">
+    <div class="card num"><div class="lbl">Phishing caught (recall)</div><div class="big green" style="margin-top:30px">0.883</div><div class="vs"><b>166 of 188</b> phishing URLs</div></div>
+    <div class="card num"><div class="lbl">False positive rate</div><div class="big blue" style="margin-top:30px">0.046</div><div class="vs"><b>10 of 219</b> legitimate URLs</div></div>
+    <div class="card num"><div class="lbl">Scan time, median / p90</div><div class="big blue" style="margin-top:30px;font-size:120px">18.6 s</div><div class="vs">p90 <b>31.2 s</b> · before: 37.8 s</div></div>
+  </div>
+  <p style="margin-top:48px;font-size:28px;line-height:1.45;color:var(--muted);max-width:1640px"><b style="color:var(--cloud)">Caught</b> means a phishing verdict, or suspicious with risk 50 or more. The labelled set is private, so reproduce the method with your own labelled URLs.</p>
+  <div class="src">2026-11-03, test stack, us-west-2, 448 URLs submitted at once (224 from a public phishing feed, 224 legitimate), 407 live, episodic memory off, 25 in flight. Source: README.md, docs/evaluation.md.</div>
+  <div class="foot"><span></span><span>11</span></div>
+</section>
+
+<!-- 12 Security -->
+<section class="slide" data-notes="Security is the default, not an add-on. Signed access only; the page opens in AgentCore Browser with an SSRF guard on every outbound request; guardrails on the way in and the way out, with URLs in model text defanged; KMS customer managed keys on every store and one IAM role per component, with every wildcard listed and explained in docs/security.md.">
+  <div class="eyebrow">Security by design</div>
+  <h2>Built to be careful with hostile pages</h2>
+  <div class="tiles" style="grid-template-columns:repeat(2,1fr);gap:28px;margin-top:52px">
+    <div class="card tile" style="padding:38px 44px"><div class="k">Signed access only</div><div class="b" style="color:var(--cloud);font-size:30px">The API takes SigV4 (IAM) calls only. The console signs in with Amazon Cognito, TOTP MFA optional or required, behind CloudFront and AWS WAF.</div></div>
+    <div class="card tile" style="padding:38px 44px"><div class="k">Never on your machine</div><div class="b" style="color:var(--cloud);font-size:30px">Pages open in AgentCore Browser. Agents never type, submit forms or solve bot checks. Every outbound request passes an SSRF guard.</div></div>
+    <div class="card tile" style="padding:38px 44px"><div class="k">Guardrails both ways</div><div class="b" style="color:var(--cloud);font-size:30px">Amazon Bedrock Guardrails check every submitted URL and every report. URLs in model text are defanged.</div></div>
+    <div class="card tile" style="padding:38px 44px"><div class="k">Encrypted and scoped</div><div class="b" style="color:var(--cloud);font-size:30px">AWS KMS customer managed keys on tables, buckets, queues and logs. One IAM role per component, each wildcard explained.</div></div>
+  </div>
+  <div class="foot"><span>Details: docs/security.md, docs/threat-model.md</span><span>12</span></div>
+</section>
+
+<!-- 13 Responsible use -->
+<section class="slide" data-notes="Verdicts are advisory and a person makes the final call. When a provider warning or a bot check hides the real page, the app says so: page observed is false and the verdict is held at suspicious, below a block threshold of 70. Send those, and every warn, to a person. This is sample code for learning and prototyping, not production ready.">
+  <div class="eyebrow">Responsible use</div>
+  <h1 style="max-width:1500px">The verdict is advisory. <span class="blue">A person makes the call.</span></h1>
+  <div class="tiles" style="grid-template-columns:repeat(3,1fr)">
+    <div class="card tile"><div class="k">Labelled as AI</div><div class="b" style="color:var(--cloud)">Every result carries "AI-generated analysis: human review required".</div></div>
+    <div class="card tile"><div class="k">Honest about gaps</div><div class="b" style="color:var(--cloud)">If a warning or bot check hid the page, <span class="mono" style="font-size:24px">page_observed</span> is false and the verdict stays at suspicious.</div></div>
+    <div class="card tile"><div class="k">Sample code</div><div class="b" style="color:var(--cloud)">For learning and prototyping, not production ready. Review and test before real use.</div></div>
+  </div>
+  <div class="foot"><span>docs/responsible-ai.md</span><span>13</span></div>
+</section>
+
+<!-- 14 Cost -->
+<section class="slide" data-notes="A small fixed cost while idle, mostly the AWS WAF web ACL and two KMS keys, plus a per-scan cost that is mostly model tokens. The token mean is measured; the other per-scan services and the idle figure are estimates from measured usage and list prices, and Cost Explorer agreed for the tagged stacks. The Insights page shows your real token spend per URL, batch and model.">
+  <div class="eyebrow">Cost</div>
+  <h2>Pennies per scan, a small idle floor</h2>
+  <div class="numgrid">
+    <div class="card num"><div class="lbl">Idle stacks</div><div class="big blue" style="margin-top:30px;font-size:84px;white-space:nowrap">$14 to $15</div><div class="vs">per month, estimate · mostly AWS WAF and KMS</div></div>
+    <div class="card num"><div class="lbl">Per scan</div><div class="big blue" style="margin-top:30px;font-size:84px;white-space:nowrap">$0.105</div><div class="vs"><b>$0.090</b> tokens, measured + <b>about $0.015</b> other services, estimate</div></div>
+    <div class="card num"><div class="lbl">1,000 scans a month</div><div class="big blue" style="margin-top:30px;font-size:84px;white-space:nowrap">$120 to $130</div><div class="vs">computed: measured tokens plus estimates, with storage</div></div>
+  </div>
+  <p style="margin-top:40px;margin-bottom:24px;font-size:28px;line-height:1.45;color:var(--muted);max-width:1640px">Every resource is tagged with <span class="mono" style="font-size:26px">Project</span> and <span class="mono" style="font-size:26px">Owner</span>, so spend shows up in Cost Explorer. The Insights page shows token spend per URL, batch and model.</p>
+  <div class="src">Assumptions: us-west-2 application and us-east-1 edge stack, on-demand prices, no free tier; token mean measured 2026-11-03 on 407 live URLs. Per-service breakdown: docs/cost.md.</div>
+  <div class="foot"><span></span><span>14</span></div>
+</section>
+
+<!-- 15 Deploy -->
+<section class="slide" data-notes="From the README quick start. You need AWS credentials, Node.js 22, Python 3.13 with uv, Finch or Docker with ARM64 builds, and Bedrock access to Claude Opus 5.5 and Claude Sonnet 5.5. The first deploy takes about 8 minutes. Then open the WebUrl output, register, and scan a known-good page. Clean up with one command; it deletes the stored scans and every Cognito user.">
+  <div class="eyebrow">Deploy and clean up</div>
+  <h2>Three commands up. One command down.</h2>
+  <div class="row" style="margin-top:52px;gap:32px;align-items:stretch">
+    <div class="card" style="flex:2.2;overflow:hidden"><div class="codehead"><i></i><i></i><i></i><span>deploy · about 8 minutes the first time</span></div>
+<pre class="code" style="font-size: 21px"><span class="c"># 1. get the code and dependencies</span>
+git clone https://github.com/aws-samples/sample-agentic-phishing-detection.git
+cd sample-agentic-phishing-detection &amp;&amp; uv sync --all-packages
+
+<span class="c"># 2. once per account</span>
+npx aws-cdk@2.1143.0 bootstrap aws://&lt;account-id&gt;/$AWS_REGION \
+  aws://&lt;account-id&gt;/us-east-1
+
+<span class="c"># 3. deploy, tagged with your team</span>
+cd infra &amp;&amp; npx aws-cdk@2.1143.0 deploy --all -c owner=&lt;team&gt;</pre></div>
+    <div class="card" style="flex:1;overflow:hidden;border-color:rgba(255,92,133,.45)"><div class="codehead"><i></i><i></i><i></i><span>clean up</span></div>
+<pre class="code" style="font-size: 21px; padding: 44px 36px">cd infra
+npx aws-cdk@2.1143.0 destroy --all</pre>
+<p style="padding:0 36px 40px;font-size:25px;line-height:1.45;color:var(--muted)">Deletes stored scans and every Cognito user. Then confirm nothing tagged <span class="mono" style="font-size:22px">Project=phish-triage</span> is left in both Regions.</p></div>
+  </div>
+  <div class="foot"><span>README.md · Quick start, Clean up</span><span>15</span></div>
+</section>
+
+<!-- 16 Next steps -->
+<section class="slide" data-notes="Suggested next steps: deploy it in a sandbox account, run it on links you have already labelled to see how it does on your traffic, try it as a pre-publish gate that holds risky links for review, and tune models, concurrency and retention with deploy options. Then clean up.">
+  <div class="eyebrow">Next steps</div>
+  <h1>Try it on your own links</h1>
+  <div class="tiles" style="grid-template-columns:repeat(4,1fr);gap:24px">
+    <div class="card tile" style="padding:36px"><div class="k">01</div><div class="h" style="font-size:34px">Deploy in a sandbox</div><div class="b" style="font-size:25px">One CDK command, in your own account.</div></div>
+    <div class="card tile" style="padding:36px"><div class="k">02</div><div class="h" style="font-size:34px">Measure on your data</div><div class="b" style="font-size:25px">Score it against links you have already labelled.</div></div>
+    <div class="card tile" style="padding:36px"><div class="k">03</div><div class="h" style="font-size:34px">Pilot a gate</div><div class="b" style="font-size:25px">Hold risky links for review through the API.</div></div>
+    <div class="card tile" style="padding:36px"><div class="k">04</div><div class="h" style="font-size:34px">Tune and clean up</div><div class="b" style="font-size:25px">Models, concurrency and retention are deploy options.</div></div>
+  </div>
+  <div style="margin-top:auto;margin-bottom:40px;font:500 34px/1.3 'JetBrains Mono';color:var(--blue)">github.com/aws-samples/sample-agentic-phishing-detection</div>
+  <div class="foot"><span>MIT-0 · sample code, not for production use</span><span>16</span></div>
+</section>
+
+</body>
+</html>

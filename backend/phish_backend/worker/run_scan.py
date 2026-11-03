@@ -973,6 +973,13 @@ def process_message(
     )
     if report_status == ReportStatus.READY or not stored:
         aws_retry.stop_harness_session(client, session_id, cfg.harness_arn)
+    if not stored:
+        # Another worker stored this scan and has already remembered, counted and logged it.
+        logger.info(
+            "scan already stored by another worker; memory, metrics and log skipped",
+            extra={"scan_id": scan_id},
+        )
+        return
     # After the verdict is stored, so a failed or slow write can never cost the scan.
     scan_memory.remember(memory_client, cfg.memory_id, scan_id, record.url, verdict, completed)
     _emit(total_ms, harness_ms, calls, breakdown)
@@ -993,7 +1000,7 @@ def process_message(
             **breakdown,
         },
     )
-    if report_status == ReportStatus.PENDING and stored:
+    if report_status == ReportStatus.PENDING:
         _write_report(
             client=client,
             cfg=cfg,

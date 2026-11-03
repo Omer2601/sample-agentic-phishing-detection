@@ -227,6 +227,24 @@ def python_function(
         encryption_key=key,
         removal_policy=cfg.removal_policy,
     )
+    # No logs:CreateLogGroup (AWSLambdaBasicExecutionRole grants it on *): once CloudFormation
+    # deletes the group, the runtime cannot recreate it under the name the next deployment
+    # creates. Inline, so the role depends on the group and goes before it on delete.
+    role = iam.Role(
+        scope,
+        f"{id}Role",
+        assumed_by=iam.ServicePrincipal("lambda.amazonaws.com"),
+        inline_policies={
+            "Logs": iam.PolicyDocument(
+                statements=[
+                    iam.PolicyStatement(
+                        actions=["logs:CreateLogStream", "logs:PutLogEvents"],
+                        resources=[log_group.log_group_arn],
+                    )
+                ]
+            )
+        },
+    )
     return lambda_.Function(
         scope,
         id,
@@ -240,6 +258,7 @@ def python_function(
         environment={"LOG_LEVEL": "INFO", **environment},
         environment_encryption=key,
         log_group=log_group,
+        role=role,
         logging_format=lambda_.LoggingFormat.JSON,
         system_log_level_v2=lambda_.SystemLogLevel.INFO,
         tracing=lambda_.Tracing.ACTIVE,

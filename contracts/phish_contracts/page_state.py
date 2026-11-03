@@ -1,6 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
-"""verdict_detail: what state the captured page was in (taken down, parked, S3 AccessDenied).
+"""verdict_detail: what state the captured page was in (taken down, parked, S3 AccessDenied,
+bot-blocked).
 
 Additive only. The browser specialists' code (phish_agents.common.page_state) records the
 recognised page state on Finding.page_state, a code-only field the model never sees or writes;
@@ -22,16 +23,28 @@ PROVIDER_SUSPENDED_PAGE = "provider_suspended_page"
 GODADDY_LANDER = "godaddy_lander"
 FOR_SALE_LANDER = "for_sale_lander"
 S3_ACCESS_DENIED = "s3_access_denied"
+BOT_CHALLENGE_PAGE = "bot_challenge_page"
+BOT_FILTER_PAGE = "bot_filter_page"
+BLOCK_PAGE = "block_page"
 
 # When two captures disagree, the most definitive state wins.
-_PRIORITY = (PageState.TAKEN_DOWN, PageState.S3_ACCESS_DENIED, PageState.PARKED)
+_PRIORITY = (
+    PageState.TAKEN_DOWN,
+    PageState.S3_ACCESS_DENIED,
+    PageState.PARKED,
+    PageState.BOT_BLOCKED,
+)
 
 
 def verdict_detail(findings: Sequence[Finding]) -> VerdictDetail | None:
     """The page state the browser findings' code recorded, or None when none did."""
     seen: dict[tuple[PageState, str], list[str]] = {}
+    # A bot wall in front of one capture says nothing once another capture saw the real page.
+    observed = any(f.agent in BROWSER_AGENTS and f.page_observed for f in findings)
     for finding in findings:
         if finding.agent not in BROWSER_AGENTS or finding.page_state is None:
+            continue
+        if observed and finding.page_state.page_state == PageState.BOT_BLOCKED:
             continue
         match = (finding.page_state.page_state, finding.page_state.reason)
         agents = seen.setdefault(match, [])
@@ -41,3 +54,15 @@ def verdict_detail(findings: Sequence[Finding]) -> VerdictDetail | None:
         return None
     state, reason = min(seen, key=lambda key: (_PRIORITY.index(key[0]), key[1]))
     return VerdictDetail(page_state=state, reason=reason, agents=seen[(state, reason)])
+
+
+def bot_blocked_report_note(findings: Sequence[Finding]) -> str:
+    """A markdown line put above the report when the page stayed behind a bot wall, else ""."""
+    detail = verdict_detail(findings)
+    if detail is None or detail.page_state != PageState.BOT_BLOCKED:
+        return ""
+    return (
+        "> **Bot wall.** The site answered our browser with a bot check or block page "
+        f"({detail.reason}), so its real page was not observed. The site is up: this is not "
+        "a dead site, and the block page is not evidence either way.\n\n"
+    )

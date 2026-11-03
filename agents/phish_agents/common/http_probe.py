@@ -63,14 +63,19 @@ class _PinnedBackend(httpcore.AsyncNetworkBackend):
         addresses = self._pins.get(host)
         if not addresses:
             raise httpcore.ConnectError(f"{host} has no address approved by the guard")
+        refused: httpcore.ConnectError | None = None
+        timed_out: httpcore.ConnectTimeout | None = None
         for address in addresses:
             try:
                 return await self._inner.connect_tcp(
                     address, port, timeout, local_address, socket_options
                 )
             except httpcore.ConnectError as exc:
-                error = exc
-        raise error
+                refused = exc
+            except httpcore.ConnectTimeout as exc:
+                timed_out = exc
+        # One slow address makes the host inconclusive (unreachable), not refused (site_down).
+        raise timed_out or refused
 
     async def sleep(self, seconds: float) -> None:
         await self._inner.sleep(seconds)

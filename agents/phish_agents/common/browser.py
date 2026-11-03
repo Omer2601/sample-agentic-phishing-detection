@@ -31,10 +31,12 @@ from phish_agents.common.url_safety import request_allowed
 from phish_contracts.models import (
     REDIRECT_URL_MAX,
     CallKind,
+    PageState,
     PageStateObservation,
     Severity,
     Signal,
 )
+from phish_contracts.page_state import BLOCK_PAGE, BOT_CHALLENGE_PAGE, BOT_FILTER_PAGE
 
 logger = logging.getLogger(__name__)
 
@@ -492,6 +494,9 @@ async def open_with_www_sibling(url, open_url, left_ms, min_ms: int) -> dict:
         return {**nav, "sibling_capture": sibling_record(url, sibling)}
 
 
+# tls_certificate type for a page that loaded only after a browser refusal and a retry with
+# certificate checks ignored (CAPTURE_BLOCK_RETRY): the certificate error itself was not seen.
+TLS_UNCONFIRMED = "unconfirmed_after_browser_refusal"
 _CERT_ERROR_TYPES = {
     "net::ERR_CERT_AUTHORITY_INVALID": "self_signed_or_unknown_ca",
     "net::ERR_CERT_COMMON_NAME_INVALID": "hostname_mismatch",
@@ -514,6 +519,16 @@ def tls_certificate_signal(nav: dict) -> Signal | None:
     cert = nav.get("tls_certificate")
     if not isinstance(cert, dict):
         return None
+    if cert.get("type") == TLS_UNCONFIRMED:
+        return Signal(
+            name=TLS_CERTIFICATE_ERROR,
+            severity=Severity.LOW,
+            evidence=(
+                f"The managed browser refused the page ({cert.get('code')}) until certificate "
+                "checks were ignored for this capture only, which points to a certificate that "
+                "does not validate; the page's content is not authenticated."
+            ),
+        )
     return Signal(
         name=TLS_CERTIFICATE_ERROR,
         severity=Severity.LOW,
@@ -563,13 +578,54 @@ _UNOBSERVED_BLOCKS = frozenset(
 )
 
 
+# CAPTURE_BLOCK_RETRY=1: a bot wall gets one retry with another browser profile, a browser
+# refusal (ERR_BLOCKED_BY_CLIENT) the certificate-tolerant retry, and a page still behind a
+# bot wall the page state bot_blocked. Off by default.
+BLOCK_RETRY_ENV = "CAPTURE_BLOCK_RETRY"
+_TRUE = frozenset({"1", "true", "on", "yes"})
+# A plain block page counts as a bot wall only on these statuses; 401 asks for a login and
+# 451 is a legal block, so neither is retried or reported as bot_blocked.
+_BOT_BLOCK_STATUS = frozenset({403, 429})
+_BOT_BLOCK_UNAVAILABLE = 503
+
+
+def block_retry_enabled() -> bool:
+    return os.environ.get(BLOCK_RETRY_ENV, "").strip().lower() in _TRUE
+
+
+def bot_block_reason(nav: dict | None) -> str | None:
+    """bot_challenge_page, bot_filter_page or block_page when the loaded page is a bot wall
+    standing in front of the site, else None. Provider phishing/malware warnings, 404s and
+    recognised provider pages (S3 AccessDenied, takedowns, parking) are not bot walls."""
+    if not nav or "error" in nav or "download" in nav or _cloudflare_warning(nav):
+        return None
+    status, title = nav.get("status"), (nav.get("title") or "").strip()
+    if status == NOT_FOUND_STATUS or page_state.classify(nav) is not None:
+        return None
+    if _CLOAKING_TITLE.search(title):
+        return BOT_FILTER_PAGE
+    if _CHALLENGE_TITLE.search(title):
+        return BOT_CHALLENGE_PAGE
+    if status in _BOT_BLOCK_STATUS or (
+        status == _BOT_BLOCK_UNAVAILABLE and _BOT_WALL_TITLE.search(title)
+    ):
+        return BLOCK_PAGE
+    return None
+
+
 def recognised_page_state(
     failure: CaptureFailure | None, data: dict | None
 ) -> PageStateObservation | None:
     """The page state code recognised on a loaded capture (code-only Finding.page_state)."""
     if failure is not None or not data or "error" in data or "download" in data:
         return None
-    return page_state.observation(data)
+    observed = page_state.observation(data)
+    if observed is not None or not block_retry_enabled() or sibling_capture(data):
+        return observed
+    reason = bot_block_reason(data)
+    if reason is None:
+        return None
+    return PageStateObservation(page_state=PageState.BOT_BLOCKED, reason=reason)
 
 
 def page_observed(failure: CaptureFailure | None, data: dict | None) -> bool:
@@ -697,8 +753,22 @@ def capture_note(
     block: Signal | None,
     warning: dict | None = None,
     sibling: dict | None = None,
+    block_retry: dict | None = None,
 ) -> str | None:
     """One plain-English sentence on how the capture went, or None when it was complete."""
+    note = _capture_note(failure, block, warning, sibling)
+    retry = _BLOCK_RETRY_NOTES.get(block_retry.get("outcome")) if block_retry else None
+    if failure is not None or not retry:
+        return note
+    return f"{note} {retry}" if note else retry
+
+
+def _capture_note(
+    failure: CaptureFailure | None,
+    block: Signal | None,
+    warning: dict | None,
+    sibling: dict | None,
+) -> str | None:
     if failure is not None:
         return _FAILURE_NOTES.get(
             failure.category, "The page could not be captured, so it was judged from its URL."
@@ -714,6 +784,15 @@ def capture_note(
     if block is not None:
         return _BLOCK_NOTES.get(block.name)
     return None
+
+
+_BLOCK_RETRY_NOTES = {
+    "recovered": (
+        "The site first served a bot wall to our browser; a second try with a different "
+        "browser profile got past it and captured the real page."
+    ),
+    "still_blocked": "A second try with a different browser profile was blocked too.",
+}
 
 
 def _first_line(exc: BaseException, limit: int = 200) -> str:

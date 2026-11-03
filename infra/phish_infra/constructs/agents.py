@@ -38,7 +38,7 @@ from phish_infra.constructs.registry import SUPPORTED_REGIONS as REGISTRY_REGION
 from phish_infra.constructs.registry import McpRecord, SpecialistRegistry
 from phish_infra.constructs.web_search import (
     WebSearchEndpoint,
-    add_web_search_target,
+    WebSearchGateway,
     web_search_folds,
 )
 
@@ -234,6 +234,7 @@ class AgentsLayer(Construct):
     ) -> None:
         super().__init__(scope, id)
         self.web_search = web_search
+        self.web_search_gateway: WebSearchGateway | None = None
         self.cache = cache
         stack = cdk.Stack.of(self)
         arn_base = f"arn:{stack.partition}:bedrock-agentcore:{stack.region}"
@@ -269,6 +270,8 @@ class AgentsLayer(Construct):
             self.runtimes[name] = self._specialist(name, cfg, key, artifacts_bucket)
             # Ready before a specialist can take traffic, not just before the harness.
             self.runtimes[name].node.add_dependency(tools_target)
+            if name in WEB_SEARCH_AGENTS and self.web_search_gateway is not None:
+                self.runtimes[name].node.add_dependency(self.web_search_gateway)
         self.dispatcher = self._dispatcher(cfg, key, artifacts_bucket)
         runtime_arns = runtime_and_endpoint_arns([*self.runtimes.values(), self.dispatcher])
 
@@ -535,6 +538,8 @@ class AgentsLayer(Construct):
         """One MCP Runtime from the shared image (AGENT picks what it serves; default name)."""
         if cfg.capture_recovery:
             environment = {**environment, "CAPTURE_RECOVERY": "1"}
+        if cfg.capture_block_retry:
+            environment = {**environment, "CAPTURE_BLOCK_RETRY": "1"}
         if cfg.latency_budgets:
             environment = {**environment, "LATENCY_BUDGETS": "1"}
         if cfg.code_text_budget == "half":
@@ -655,7 +660,7 @@ class AgentsLayer(Construct):
         gateways = [self.tools_gateway.gateway_arn]
         if name in WEB_SEARCH_AGENTS and self.web_search is not None:
             # SigV4 to the Web Search Gateway: the edge stack's (us-east-1) or, when the
-            # Region offers the connector, the tools Gateway itself.
+            # Region offers the connector, this stack's own.
             gateways.append(self.web_search.gateway_arn)
         role.add_to_principal_policy(
             iam.PolicyStatement(
@@ -821,15 +826,12 @@ class AgentsLayer(Construct):
         target.apply_removal_policy(cfg.removal_policy)
         depend_on_role_policy(target, role)
         if web_search_folds(cfg, stack.region):
-            # Fold the Web Search connector into this Gateway: same Region, one fewer Gateway
-            # and cross-region reference. The edge stack then skips its own.
-            search_target = add_web_search_target(self, gateway=gateway, role=role, cfg=cfg)
-            self.web_search = WebSearchEndpoint(
-                gateway_url=gateway.gateway_url or "",
-                gateway_arn=gateway.gateway_arn,
-                region=stack.region,
-            )
-            target.node.add_dependency(search_target)
+            # The Web Search Gateway moves into this stack (no edge stack, no cross-region
+            # reference) but stays a Gateway of its own: IAM is per Gateway, so a target here
+            # would let url_analyst and code_analyst search the web too. Only brand_visual holds
+            # InvokeGateway on it.
+            self.web_search_gateway = WebSearchGateway(self, "WebSearch", cfg=cfg)
+            self.web_search = self.web_search_gateway.endpoint
         stack_output(self, "ToolsGatewayArn", gateway.gateway_arn, "Tools Gateway ARN")
         stack_output(self, "ToolsGatewayUrl", gateway.gateway_url or "", "Tools Gateway MCP URL")
         stack_output(

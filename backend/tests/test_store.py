@@ -127,3 +127,26 @@ def test_put_batch_never_writes_awaiting_upload_false(aws):
     )
     store.put_batch(batch, awaiting_upload=False)
     assert "awaiting_upload" not in store.get_batch_item("b2")
+
+
+@pytest.mark.parametrize(
+    ("code", "message", "expected"),
+    [
+        (
+            "ValidationException",
+            "The table does not have the specified index: dedup-queued_at",
+            True,
+        ),
+        ("ValidationException", "Cannot read from backfilling global secondary index", True),
+        ("ValidationException", "Index is being created", True),
+        ("ResourceNotFoundException", "Invalid index: dedup-queued_at for table: t", True),
+        ("ResourceNotFoundException", "Requested resource not found", False),
+        ("ValidationException", "One or more parameter values were invalid", False),
+        ("ProvisionedThroughputExceededException", "Rate exceeded", False),
+    ],
+)
+def test_index_unavailable_classifies_real_dynamodb_errors(code, message, expected):
+    from botocore.exceptions import ClientError
+
+    error = ClientError({"Error": {"Code": code, "Message": message}}, "Query")
+    assert store.index_unavailable(error) is expected

@@ -260,3 +260,61 @@ async def test_a_compressed_body_is_not_inflated_or_kept():
     from phish_agents.code_analyst import static_html
 
     assert static_html.excerpt(out) is None
+
+
+class ScriptedBackend(httpcore.AsyncNetworkBackend):
+    """Inner backend whose connect to each address raises, or returns a marker stream."""
+
+    def __init__(self, outcomes: dict):
+        self.outcomes, self.dialled = outcomes, []
+
+    async def connect_tcp(self, host, port, timeout=None, local_address=None, socket_options=None):
+        self.dialled.append(host)
+        outcome = self.outcomes[host]
+        if isinstance(outcome, Exception):
+            raise outcome
+        return outcome
+
+    async def sleep(self, seconds):
+        pass
+
+
+async def test_a_connect_timeout_on_one_approved_address_fails_over_to_the_next():
+    inner = ScriptedBackend({"192.0.2.1": httpcore.ConnectTimeout("slow"), "192.0.2.2": "stream-2"})
+    backend = http_probe._PinnedBackend({"multi.example": ["192.0.2.1", "192.0.2.2"]}, inner)
+    assert await backend.connect_tcp("multi.example", 443, timeout=1.0) == "stream-2"
+    assert inner.dialled == ["192.0.2.1", "192.0.2.2"]
+
+
+async def test_a_refused_address_still_fails_over_to_the_next():
+    inner = ScriptedBackend({"192.0.2.1": httpcore.ConnectError("refused"), "192.0.2.2": "s2"})
+    backend = http_probe._PinnedBackend({"multi.example": ["192.0.2.1", "192.0.2.2"]}, inner)
+    assert await backend.connect_tcp("multi.example", 443) == "s2"
+
+
+async def test_every_address_refused_raises_connect_error():
+    inner = ScriptedBackend(
+        {"192.0.2.1": httpcore.ConnectError("refused 1"), "192.0.2.2": httpcore.ConnectError("2")}
+    )
+    backend = http_probe._PinnedBackend({"multi.example": ["192.0.2.1", "192.0.2.2"]}, inner)
+    with pytest.raises(httpcore.ConnectError, match="2"):
+        await backend.connect_tcp("multi.example", 443)
+
+
+async def test_any_timed_out_address_makes_the_failure_a_timeout_not_a_refusal():
+    # A timeout is inconclusive (unreachable); only an all-refused host is site_down.
+    inner = ScriptedBackend(
+        {"192.0.2.1": httpcore.ConnectTimeout("slow"), "192.0.2.2": httpcore.ConnectError("no")}
+    )
+    backend = http_probe._PinnedBackend({"multi.example": ["192.0.2.1", "192.0.2.2"]}, inner)
+    with pytest.raises(httpcore.ConnectTimeout):
+        await backend.connect_tcp("multi.example", 443)
+    assert inner.dialled == ["192.0.2.1", "192.0.2.2"]
+
+
+async def test_a_host_with_no_approved_address_is_never_dialled():
+    inner = ScriptedBackend({})
+    backend = http_probe._PinnedBackend({}, inner)
+    with pytest.raises(httpcore.ConnectError, match="no address approved"):
+        await backend.connect_tcp("unpinned.example", 443)
+    assert inner.dialled == []

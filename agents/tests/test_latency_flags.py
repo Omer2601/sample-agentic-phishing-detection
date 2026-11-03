@@ -137,6 +137,9 @@ def test_session_per_scan_comes_from_the_environment(monkeypatch):
     assert RuntimeToolsClient.from_env().session_per_scan is True
     monkeypatch.setenv("TOOLS_SESSION_PER_SCAN", "0")
     assert RuntimeToolsClient.from_env().session_per_scan is False
+    for on in ("true", "Yes", " ON "):
+        monkeypatch.setenv("TOOLS_SESSION_PER_SCAN", on)
+        assert RuntimeToolsClient.from_env().session_per_scan is True
 
 
 @pytest.mark.parametrize("scan_id", ["abcd1234", "a" * 64, "0b6f6c1e-3f1a-4c2e-9d55-1a2b3c4d5e6f"])
