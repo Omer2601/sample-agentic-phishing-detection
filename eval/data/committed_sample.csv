@@ -1,0 +1,32 @@
+url,label
+# --- Legitimate: well-known, high-traffic, stable domains -----------------
+# Provenance: hand-picked global top-traffic sites. These are stable, resolve
+# reliably, and are extremely unlikely to be classified as phishing. They test
+# the detector's false-positive rate.
+https://www.google.com,legitimate
+https://www.wikipedia.org,legitimate
+https://www.github.com,legitimate
+https://www.amazon.com,legitimate
+https://www.cloudflare.com,legitimate
+https://www.microsoft.com,legitimate
+https://www.apple.com,legitimate
+https://www.mozilla.org,legitimate
+https://www.iana.org,legitimate
+https://example.com,legitimate
+https://www.python.org,legitimate
+https://stackoverflow.com,legitimate
+https://www.bbc.com,legitimate
+https://www.nytimes.com,legitimate
+https://www.paypal.com,legitimate
+https://en.wikipedia.org,legitimate
+# --- Phishing: Google Safe Browsing official test pages --------------------
+# Provenance: https://testsafebrowsing.appspot.com/ - Google's official Safe
+# Browsing test harness. These pages are purpose-built, safe to visit, stable,
+# and their DNS resolves (appspot.com), so they exercise the detector rather
+# than being rejected as UNREACHABLE. They are classified by Google as social
+# engineering / phishing content. They test the detector's true-positive rate.
+https://testsafebrowsing.appspot.com/s/phishing.html,phishing
+https://testsafebrowsing.appspot.com/apiv4/ANY_PLATFORM/SOCIAL_ENGINEERING/URL/,phishing
+https://testsafebrowsing.appspot.com/apiv4/OSX/SOCIAL_ENGINEERING/URL/,phishing
+https://testsafebrowsing.appspot.com/apiv4/WINDOWS/SOCIAL_ENGINEERING/URL/,phishing
+https://testsafebrowsing.appspot.com/apiv4/LINUX/SOCIAL_ENGINEERING/URL/,phishing

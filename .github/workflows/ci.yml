@@ -1,0 +1,49 @@
+# Lint, tests and a lint-only CDK synth. No job uses AWS credentials or OIDC, and none
+# builds a container image: skipAssetBuild stubs every asset, so synth makes no AWS calls.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          version: "0.12.20"
+      # aws-cdk-lib for Python runs on the jsii Node runtime, so the infra tests need Node.
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+      - run: python3 scripts/prepush.py --only dashes,headers
+      - run: uv run --frozen --only-group dev ruff check .
+      - run: uv run --frozen --only-group dev ruff format --check .
+      - run: uv sync --frozen --all-packages
+      - run: uv run --frozen pytest -q
+      - name: synth
+        working-directory: infra
+        run: npx -y aws-cdk@2.1143.0 synth --quiet -c skipAssetBuild=true
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+      - run: npm run test:run
+      - run: npm run build

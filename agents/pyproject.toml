@@ -1,0 +1,31 @@
+[project]
+name = "phish-agents"
+version = "2.0.0"
+requires-python = ">=3.13"
+dependencies = [
+  "phish-contracts",
+  "strands-agents==1.63.0",
+  "bedrock-agentcore==1.24.0",
+  "mcp==2.2.0",
+  "playwright==1.63.0",
+  "boto3==1.43.105",
+  "httpx==0.28.1",
+  "pydantic==2.13.5",
+]
+
+[dependency-groups]
+dev = ["pytest==9.1.1", "pytest-asyncio==1.4.0"]
+
+[tool.uv.sources]
+phish-contracts = { workspace = true }
+
+[build-system]
+requires = ["hatchling==1.32.4"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["phish_agents"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

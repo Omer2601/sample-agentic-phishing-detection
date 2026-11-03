@@ -1,0 +1,10 @@
+**/node_modules
+**/.venv
+**/__pycache__
+**/cdk.out
+web/
+infra/
+backend/
+docs/
+eval/results/
+.git

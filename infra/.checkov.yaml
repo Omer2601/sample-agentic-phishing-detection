@@ -1,0 +1,30 @@
+# Accepted checkov exceptions for the synthesized templates. Each line states why.
+framework:
+  - cloudformation
+skip-check:
+  # Lambda functions do not run in a VPC: they call only AWS APIs over TLS, and the AgentCore
+  # Runtimes run in PUBLIC network mode by design (RDAP and the AgentCore Browser).
+  - CKV_AWS_117
+  # Reserved concurrency is not set: the SQS event source caps worker concurrency at
+  # scanConcurrency, and the other functions are event-driven with small fan-in.
+  - CKV_AWS_115
+  # Function-level DLQ: SQS-triggered functions use the queue DLQ, the stream aggregator has an
+  # on-failure SQS destination, the S3-invoked splitter has an async on-failure SQS
+  # destination, and EventBridge invocations are retried by the rule.
+  - CKV_AWS_116
+  # Code signing is out of scope for a sample; assets are built from this repo at synth.
+  - CKV_AWS_173
+  - CKV_AWS_272
+  # S3 access logging on the access log destination bucket itself (see cdk-nag S1 reason).
+  - CKV_AWS_18
+  # API Gateway caching: every response is per caller (owner-scoped scans, batches, stats), so a
+  # stage cache could serve one user's data to another; polling needs fresh reads anyway.
+  - CKV_AWS_120
+  # GET /health is deliberately unauthenticated (liveness probe returning {"ok": true}); every
+  # other method requires IAM SigV4 (cdk-nag APIG4 reason).
+  - CKV_AWS_59
+  # The default *.cloudfront.net certificate cannot pin the viewer TLS policy. Deploy with
+  # -c domainName and -c certificateArn (ACM, us-east-1) to pin TLSv1.2_2021 (cdk-nag CFR4).
+  - CKV_AWS_174
+compact: true
+quiet: true

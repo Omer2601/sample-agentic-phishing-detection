@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<!-- Cloudflare "Suspected Phishing" interstitial, reduced from a capture saved on 2026-10-16:
+     this variant's bypass form has no proceed button at all. -->
+<html lang="en-US"><head>
+  <title>Suspected Phishing | Cloudflare</title>
+  <meta charset="UTF-8">
+  <style>#bypass-button:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }</style>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async="" defer=""></script>
+  <script>
+    function onTurnstileSuccess(token) {
+      document.getElementById("bypass-button").disabled = false;
+    }
+  </script>
+</head>
+<body>
+  <h2>Suspected Phishing</h2>
+  <strong>This website has been reported for potential phishing.</strong>
+  <form action="/cdn-cgi/phish-bypass" method="GET" style="margin-top: 12px;">
+    <a href="https://www.cloudflare.com/learning/access-management/phishing-attack/" class="cf-btn">Learn More</a>
+  </form>
+</body></html>

@@ -1,0 +1,4 @@
+# cfn-lint settings for the synthesized templates (cdk.out/*.template.json).
+ignore_checks:
+  # CDK adds a DependsOn on a role that a GetAtt already orders; redundant, never wrong.
+  - W3005

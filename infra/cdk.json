@@ -1,0 +1,24 @@
+{
+  "app": "uv run --package phish-infra python app.py",
+  "watch": {
+    "include": ["**"],
+    "exclude": ["cdk.out", "tests", "**/__pycache__"]
+  },
+  "context": {
+    "@aws-cdk/aws-apigateway:usagePlanKeyOrderInsensitiveId": true,
+    "@aws-cdk/aws-lambda:recognizeLayerVersion": true,
+    "@aws-cdk/core:stackRelativeExports": true,
+    "@aws-cdk/aws-s3:serverAccessLogsUseBucketPolicy": true,
+    "environment": "dev",
+    "signUpMode": "app",
+    "inviteCode": false,
+    "allowedEmailDomains": "",
+    "retentionDays": 90,
+    "agentRegistry": false,
+    "orchestratorEffort": "medium",
+    "scanConcurrency": 25,
+    "sesFromAddress": "",
+    "webSearch": true,
+    "browserSigning": false
+  }
+}
