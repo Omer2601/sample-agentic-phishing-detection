@@ -2,7 +2,7 @@
 
 You can measure how well each agent, and the whole team, labels a set of URLs you already know the answer to. This page also keeps the measured latency and cost of the current design and of every earlier design, so the README can stay short.
 
-**On this page:** [Run it](#run-it) · [The dataset](#the-dataset) · [Metrics](#metrics) · [Accuracy on live phishing](#accuracy-on-live-phishing-2026-10-16) · [Accuracy rerun, 2026-10-21](#accuracy-rerun-2026-10-21) · [Current design](#current-design) · [Prompt caching rerun](#prompt-caching-rerun-2026-10-25) · [Accuracy rerun, 2026-10-26](#accuracy-rerun-2026-10-26) · [Accuracy rerun, 2026-10-27](#accuracy-rerun-2026-10-27) · [Latency history](#latency-history) · [Cost history](#cost-history) · [Limitations](#limitations)
+**On this page:** [Run it](#run-it) · [The dataset](#the-dataset) · [Metrics](#metrics) · [Accuracy on live phishing](#accuracy-on-live-phishing-2026-10-16) · [Accuracy rerun, 2026-10-21](#accuracy-rerun-2026-10-21) · [Current design](#current-design) · [Prompt caching rerun](#prompt-caching-rerun-2026-10-25) · [Accuracy rerun, 2026-10-26](#accuracy-rerun-2026-10-26) · [Accuracy rerun, 2026-10-27](#accuracy-rerun-2026-10-27) · [Each latency flag on its own](#each-latency-flag-on-its-own-2026-11-03) · [Latency history](#latency-history) · [Cost history](#cost-history) · [Limitations](#limitations)
 
 > [!WARNING]
 > Every URL is a paid call to Amazon Bedrock and AgentCore, and each one opens real web pages. Start with `--limit 5`. A full run of the committed sample can take 20 minutes or more: the script calls each of the 4 agents for each of the 21 URLs one at a time (84 calls), and one call takes about 6 to 35 s.
@@ -186,7 +186,7 @@ The 4 phishing URLs missed in the second run:
 | Model cost per scan, mean (`cost_usd`, model tokens only) | $0.092 | $0.160 |
 
 - **Cost fell 43% and scan time 29% at the median** with no measurable change in accuracy: 16 of 409 outcomes changed between the runs, in both directions, and the recall and false-positive differences (4 and 1 URLs) are within run-to-run variation on live sites.
-- The four flags were measured as one bundle, so the split of the gain between them is not known. The compact `code_analyst` view and direct orchestration (no Harness planning turn) are the likely sources of most of the cost and time saved.
+- The four flags were measured as one bundle, so the split of the gain between them is not known from this run. A later leave-one-out run ([2026-11-03](#each-latency-flag-on-its-own-2026-11-03)) found `directOrchestration` the only latency flag with a clear effect on its own; `codeModelView` and `captureRecovery` were not part of that run.
 - Queueing is not in the scan times: every URL was submitted at once, so scans waited in the queue for minutes in both runs.
 - After this measurement `codeModelView=compact` and `captureRecovery=true` became the default; that pair was not measured on its own. `directOrchestration` and `localRdap` stayed off until the [2026-11-03 run](#latency-flags-on-by-default-2026-11-03). With `directOrchestration` the optional second round and the Harness trace are gone, and a URL the pre-check finds dead still pays for the specialists.
 
@@ -207,7 +207,31 @@ The remaining latency flags (`directOrchestration`, `localRdap`, `unanimousFastP
 - **Scan time roughly halved and cost fell about 33%**; accuracy held, and the 3 to 4 URL differences are within run-to-run variation on live sites.
 - All 448 URLs were submitted at once, so most of the submit-to-`COMPLETE` time is queue wait at 25 scans in flight.
 - 129 arm A scans had the fast-path shape (three specialists legitimate at 80 or more, stored at risk 5); none was labelled phishing.
-- The eight flags were measured as one bundle. They became the default after this run; `-c directOrchestration=false` restores the Harness path with its second round and trace.
+- The eight flags were measured as one bundle here; each one on its own is in [the next section](#each-latency-flag-on-its-own-2026-11-03). They became the default after this run; `-c directOrchestration=false` restores the Harness path with its second round and trace.
+
+## Each latency flag on its own, 2026-11-03
+
+To see which of the eight latency flags matters, each one was turned off on its own (leave one out) on one test stack in a test account (`us-west-2`), with episodic memory off and `scanConcurrency` 25. Every arm scanned the same 110 URLs (60 phishing from a public feed, 50 legitimate), one arm after another over about five and a half hours; 8 phishing URLs were dead in every arm and are left out. The all-on default ran first and last to measure run-to-run noise. Caught is scored as above.
+
+| Arm | Caught | False positives | Scan time, median / p90 | Model cost per scan, mean |
+| --- | --- | --- | --- | --- |
+| All eight on (the default) | 47 of 52 | 2 of 50 | 20.1 s / 32.4 s | $0.092 |
+| All eight on, repeated last | 47 of 52 | 2 of 50 | 23.4 s / 34.7 s | $0.089 |
+| All eight off | 47 of 52 | 2 of 50 | 41.5 s / 82.7 s | $0.132 |
+| `directOrchestration` off (also turns off `unanimousFastPath` and `directSpecialists`) | 46 of 52 | 2 of 50 | 31.0 s / 64.1 s | $0.135 |
+| `unanimousFastPath` off | 46 of 52 | 2 of 50 | 17.7 s / 29.3 s | $0.091 |
+| `directSpecialists` off | 46 of 53 | 2 of 50 | 17.1 s / 26.8 s | $0.088 |
+| `localRdap` off | 46 of 52 | 2 of 50 | 16.6 s / 26.5 s | $0.091 |
+| `directTools` off (also turns off `splitToolsRuntimes`) | 47 of 52 | 2 of 50 | 23.9 s / 35.3 s | $0.091 |
+| `splitToolsRuntimes` off | 47 of 52 | 2 of 50 | 22.5 s / 33.3 s | $0.091 |
+| `latencyBudgets` off | 47 of 52 | 2 of 50 | 22.9 s / 32.7 s | $0.091 |
+| `codeTextBudget=full` | 47 of 52 | 2 of 50 | 22.8 s / 34.1 s | $0.090 |
+
+- **Noise band.** The two all-on runs differ by about 3 s at the median, so smaller differences are inside the noise, and one URL of recall is too.
+- **`directOrchestration` is the only flag with a clear effect.** Turning it off added about 8 to 11 s at the median and about 30 s at p90, and cost about 47% more per scan. Most of the gap between all on and all off is this flag. It is also the only flag that moved cost.
+- **The other flags were not measurably faster or cheaper on their own.** `directTools` showed a small signal (about 4 s slower median on phishing scans with it off) that one run cannot confirm. `unanimousFastPath`, `localRdap`, `directSpecialists`, `splitToolsRuntimes`, `latencyBudgets` and `codeTextBudget` are inside the noise; three arms that ran in the same hour were faster than all on, which points to time of day, not to the flags.
+- **No flag measurably hurt accuracy**: 46 or 47 of 52 caught and the same 2 of 50 false positives in every arm.
+- **Reliability.** With `directSpecialists` off, 2 of 110 scans had all three specialist findings fail (verdict unknown); no other arm had this. With `directTools` off, 1 scan was unknown because the target site rate-limited the capture.
 
 ## Latency history
 

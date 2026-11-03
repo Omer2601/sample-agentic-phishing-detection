@@ -78,7 +78,7 @@ Accuracy differences of 3 to 4 URLs between the two runs are within run-to-run v
 | [code_analyst](docs/agents/code_analyst.md) | Credential forms posting elsewhere, keyloggers, obfuscation                       | Claude Sonnet 5.5 |
 
 > [!NOTE]
-> **Two orchestration paths.** The default is the fast path above. `-c directOrchestration=false` puts the orchestrator on AgentCore Harness, which calls the specialists through a [dispatcher](docs/agents/dispatcher.md) and AgentCore Gateway, keeps a Harness trace and may ask one specialist a second time. The previous default, which used it, measured about twice as slow and about 50% more expensive per scan ([evaluation.md](docs/evaluation.md#latency-flags-on-by-default-2026-11-03)). Every step and permission of both paths: [docs/architecture.md](docs/architecture.md).
+> **Two orchestration paths.** The default is the fast path above. `-c directOrchestration=false` puts the orchestrator on AgentCore Harness, which calls the specialists through a [dispatcher](docs/agents/dispatcher.md) and AgentCore Gateway, keeps a Harness trace and may ask one specialist a second time. Turning only that flag off measured about 8 to 11 s slower at the median and about 47% more model cost per scan ([evaluation.md](docs/evaluation.md#each-latency-flag-on-its-own-2026-11-03)); it is the only latency flag with a clear measured effect on its own. Every step and permission of both paths: [docs/architecture.md](docs/architecture.md).
 
 ## Quick start
 
