@@ -58,27 +58,27 @@ COLOR = {
     "ml": "#01A88D",
 }
 
-# Default deploy only (agentRegistry=false, webSearch=true, browserSigning=false,
-# episodicMemory=true). Strict grid: one column pitch, icons centered on column lines.
-# Row 1 is the request path. The scan path inside AgentCore runs left to right on the middle
-# specialist row, so the dispatcher's three fan-out lines are short elbows. The worker's line
-# to the Harness runs in its own lane between the rows, and its precheck line drops straight
-# down to the tools server below it. Every explanation lives in the numbered steps in
-# docs/architecture.md, so line labels stay at three words or fewer.
+# Default deploy only (all latency flags on, agentRegistry=false, webSearch=true,
+# browserSigning=false, episodicMemory=true). Strict grid: one column pitch, icons centered on
+# column lines. Row 1 is the request path. The worker sits above the pre-check tools server, so
+# the pre-check drops straight down; its two other lines leave downwards into their own lanes:
+# one to the specialists box, one to the orchestrator model. Every explanation lives in the
+# numbered steps in docs/architecture.md, so line labels stay at three words or fewer.
 PITCH = 220
 COL = [120 + i * PITCH for i in range(7)]  # icon centers
 ROW1 = 80  # request path icon tops
-SPEC_PITCH = 110  # vertical pitch of the three specialists
-ROWM = 420  # scan path icon tops (the middle specialist)
+SPEC_PITCH = 140  # vertical pitch of the three specialists
+ROWM = 470  # middle specialist icon top
 ROW_UP, ROW_DOWN = ROWM - SPEC_PITCH, ROWM + SPEC_PITCH  # url_analyst, code_analyst
-SUPPORT = 790
+SUPPORT = 850
 LANE_TOP = ROW1 - 35  # the direct API client line
-LANE_MID = 225  # the worker to Harness line
-FAN_X = COL[2] + 110  # the dispatcher's fan-out elbows turn here
-ROUND2_Y = 665  # the optional second round runs under the specialists box
-PAGE_W, PAGE_H = 1560, 1010
+LANE_MODEL = 210  # the worker to orchestrator model line
+LANE_SPEC = 268  # the worker to specialists line
+BROWSER_X = COL[6] - 60  # the three capture lines turn down or up here
+PAGE_W, PAGE_H = 1560, 1070
 GROUP_W = PAGE_W - 40
-MIDM = ROWM + ICON / 2
+SUP_PITCH = 190  # eight supporting services share the row
+SUP = [120 + i * SUP_PITCH for i in range(8)]
 
 
 def at(col: int) -> int:
@@ -86,22 +86,21 @@ def at(col: int) -> int:
     return COL[col] - ICON // 2
 
 
+def sup(i: int) -> int:
+    """Icon left edge for a supporting services slot."""
+    return SUP[i] - ICON // 2
+
+
 # (label, x, y, w, h, border color, label align). Labels sit at the bottom.
 GROUPS = [
-    ("Amazon Bedrock AgentCore: the scan", 20, 245, GROUP_W, 465, "#01A88D", "right"),
-    ("Supporting services (no lines)", 20, 760, GROUP_W, 190, "#7D8998", "left"),
+    ("The scan: Amazon Bedrock and AgentCore", 20, 245, GROUP_W, 530, "#01A88D", "right"),
+    ("Supporting services (no lines)", 20, 820, GROUP_W, 190, "#7D8998", "left"),
 ]
 
 # Plain box drawn behind the specialist icons: (id, label, x, y, w, h).
-BOX_W = 160
-BOX = (COL[3] - BOX_W // 2, ROW_UP - 38, BOX_W, 2 * SPEC_PITCH + ICON + 38 + 34)
-BOXES = [("specialists", "3 specialists", *BOX)]
-
-
-def by(y: float) -> float:
-    """Exit/entry fraction of the specialists box for an absolute y."""
-    return (y - BOX[1]) / BOX[3]
-
+BOX_W = 190
+BOX = (COL[2] - BOX_W // 2, ROW_UP - 38, BOX_W, 2 * SPEC_PITCH + ICON + 38 + 34)
+BOXES = [("specialists", "3 specialists (Sonnet)", *BOX)]
 
 # id: (label, resIcon, category, x, y). "user" is the general user shape. Two lines at most.
 NODES = {
@@ -110,37 +109,38 @@ NODES = {
     "api": ("API Gateway\n+ Lambda (API)", "api_gateway", "integration", at(2), ROW1),
     "sqs": ("Amazon SQS\nscan queue", "sqs", "integration", at(4), ROW1),
     "worker": ("AWS Lambda\nworker", "lambda", "compute", at(5), ROW1),
-    "harness": ("AgentCore Harness\norchestrator (Opus)", "bedrock_agentcore", "ml", at(0), ROWM),
-    "gateway": ("Gateway\nphish-specialists", "bedrock_agentcore", "ml", at(1), ROWM),
-    "dispatcher": ("dispatcher\n(no model)", "bedrock_agentcore", "ml", at(2), ROWM),
-    "rt_url": ("url_analyst", "bedrock_agentcore", "ml", at(3), ROW_UP),
-    "rt_brand": ("brand_visual", "bedrock_agentcore", "ml", at(3), ROWM),
-    "rt_code": ("code_analyst", "bedrock_agentcore", "ml", at(3), ROW_DOWN),
-    "tools_gw": ("Gateway\nphish-tools", "bedrock_agentcore", "ml", at(4), ROWM),
-    "tools_rt": ("tools server\n(no model)", "bedrock_agentcore", "ml", at(5), ROWM),
+    "model": ("Amazon Bedrock\norchestrator (Opus)", "bedrock", "ml", at(0), ROWM),
+    "rt_url": ("url_analyst\n(RDAP in process)", "bedrock_agentcore", "ml", at(2), ROW_UP),
+    "rt_brand": ("brand_visual", "bedrock_agentcore", "ml", at(2), ROWM),
+    "rt_code": ("code_analyst", "bedrock_agentcore", "ml", at(2), ROW_DOWN),
+    "tools_pre": ("tools server\n(pre-check)", "bedrock_agentcore", "ml", at(5), ROW_UP),
+    "tools_brand": ("tools server\n(brand copy)", "bedrock_agentcore", "ml", at(4), ROWM),
+    "tools_code": ("tools server\n(code copy)", "bedrock_agentcore", "ml", at(4), ROW_DOWN),
     "browser": ("AgentCore\nBrowser", "bedrock_agentcore", "ml", at(6), ROWM),
     # Supporting services: no lines; the steps in docs/architecture.md say who uses each.
-    "ddb": ("DynamoDB\nscans", "dynamodb", "database", at(0), SUPPORT),
-    "artifacts": ("Amazon S3\nartifacts", "s3", "storage", at(1), SUPPORT),
-    "cache": ("DynamoDB\nresult cache", "dynamodb", "database", at(2), SUPPORT),
-    "memory": ("AgentCore\nMemory", "bedrock_agentcore", "ml", at(3), SUPPORT),
-    "guardrails": ("Bedrock\nGuardrails", "bedrock", "ml", at(4), SUPPORT),
-    "websearch": ("AgentCore\nWeb Search", "bedrock_agentcore", "ml", at(5), SUPPORT),
-    "registry": ("Agent Registry\n(opt-in, off)", "bedrock_agentcore", "ml", at(6), SUPPORT),
+    "ddb": ("DynamoDB\nscans", "dynamodb", "database", sup(0), SUPPORT),
+    "artifacts": ("Amazon S3\nartifacts", "s3", "storage", sup(1), SUPPORT),
+    "cache": ("DynamoDB\nresult cache", "dynamodb", "database", sup(2), SUPPORT),
+    "memory": ("AgentCore\nMemory", "bedrock_agentcore", "ml", sup(3), SUPPORT),
+    "guardrails": ("Bedrock\nGuardrails", "bedrock", "ml", sup(4), SUPPORT),
+    "websearch": ("AgentCore\nWeb Search", "bedrock_agentcore", "ml", sup(5), SUPPORT),
+    "harness": ("Harness path\n(standby)", "bedrock_agentcore", "ml", sup(6), SUPPORT),
+    "registry": ("Agent Registry\n(opt-in, off)", "bedrock_agentcore", "ml", sup(7), SUPPORT),
 }
-# Lines leave these icons downwards or enter from above, so their labels sit above.
-LABEL_TOP = {"worker", "gateway"}
+# Lines leave these icons downwards, so their labels sit above.
+LABEL_TOP = {"worker"}
 
 # Plain text, no border, not an obstacle: (id, text, x, y, w, h). The legend.
 TEXTS = [
     (
         "footer",
         "Solid lines: the scan path, numbered in order (docs/architecture.md explains each "
-        "step). Dashed: the optional second round. Bottom row: off the path, no lines.\n"
+        "step). Bottom row: off the path, no lines. Harness path: AgentCore Harness, the "
+        "dispatcher and both Gateways, used with -c directOrchestration=false.\n"
         "Agent Registry is deployed only with -c agentRegistry=true. Every AWS call is signed "
         "with SigV4.",
         20,
-        958,
+        1018,
         GROUP_W,
         44,
     ),
@@ -161,50 +161,41 @@ EDGES = {
     "cf_api": ("cf", "api", (1, 0.5), (0, 0.5), [], "SigV4"),
     "api_sqs": ("api", "sqs", (1, 0.5), (0, 0.5), [], "2 enqueue"),
     "sqs_worker": ("sqs", "worker", (1, 0.5), (0, 0.5), [], "2 trigger"),
-    # The worker sits right above the tools server: precheck drops straight down on the
-    # right of the icon, the Harness line leaves on the left and turns into its lane.
-    "worker_precheck": ("worker", "tools_rt", (0.75, 1), (0.75, 0), [], "3 precheck", 0.6),
-    "worker_harness": (
+    "worker_precheck": ("worker", "tools_pre", (0.75, 1), (0.75, 0), [], "3 pre-check", 0.6),
+    "worker_specs": (
         "worker",
-        "harness",
-        (0.25, 1),
-        (0.5, 0),
-        [(COL[5] - ICON / 4, LANE_MID), (COL[0], LANE_MID)],
-        "4 invoke",
-    ),
-    "harness_gw": ("harness", "gateway", (1, 0.5), (0, 0.5), [], "5 one tool"),
-    "gw_dispatcher": ("gateway", "dispatcher", (1, 0.5), (0, 0.5), [], "6 route"),
-    # Fan-out: one straight line to the middle specialist, one elbow up, one elbow down.
-    "fan_url": (
-        "dispatcher",
-        "rt_url",
-        (1, 0.25),
-        (0, 0.5),
-        [(FAN_X, ROWM + ICON / 4), (FAN_X, ROW_UP + ICON / 2)],
-        "",
-    ),
-    "fan_brand": ("dispatcher", "rt_brand", (1, 0.5), (0, 0.5), [], "7 in parallel", -0.3),
-    "fan_code": (
-        "dispatcher",
-        "rt_code",
-        (1, 0.75),
-        (0, 0.5),
-        [(FAN_X, ROWM + 3 * ICON / 4), (FAN_X, ROW_DOWN + ICON / 2)],
-        "",
-    ),
-    "spec_tools": ("specialists", "tools_gw", (1, by(MIDM)), (0, 0.5), [], "8 MCP tools"),
-    "tools_gw_rt": ("tools_gw", "tools_rt", (1, 0.5), (0, 0.5), [], "9 route"),
-    "tools_browser": ("tools_rt", "browser", (1, 0.5), (0, 0.5), [], "10 browse"),
-    # The optional second round: the orchestrator calls one specialist tool on the same
-    # Gateway, without the dispatcher. It runs under the specialists box and enters from below.
-    "round2": (
-        "gateway",
         "specialists",
         (0.5, 1),
-        (0.5, 1),
-        [(COL[1], ROUND2_Y), (COL[3], ROUND2_Y)],
-        "optional second round",
-        "dashed",
+        (0.5, 0),
+        [(COL[5], LANE_SPEC), (COL[2], LANE_SPEC)],
+        "3 in parallel",
+    ),
+    "brand_tools": ("rt_brand", "tools_brand", (1, 0.5), (0, 0.5), [], "4 capture"),
+    "code_tools": ("rt_code", "tools_code", (1, 0.5), (0, 0.5), [], "4 capture"),
+    "pre_browser": (
+        "tools_pre",
+        "browser",
+        (1, 0.5),
+        (0, 0.25),
+        [(BROWSER_X, ROW_UP + ICON / 2), (BROWSER_X, ROWM + ICON / 4)],
+        "",
+    ),
+    "brand_browser": ("tools_brand", "browser", (1, 0.5), (0, 0.5), [], "5 browse", -0.4),
+    "code_browser": (
+        "tools_code",
+        "browser",
+        (1, 0.5),
+        (0, 0.75),
+        [(BROWSER_X + 20, ROW_DOWN + ICON / 2), (BROWSER_X + 20, ROWM + 3 * ICON / 4)],
+        "",
+    ),
+    "worker_model": (
+        "worker",
+        "model",
+        (0.25, 1),
+        (0.5, 0),
+        [(COL[5] - ICON / 4, LANE_MODEL), (COL[0], LANE_MODEL)],
+        "6 verdict, report",
     ),
 }
 

@@ -2,15 +2,48 @@
 
 This page shows how a scan moves through the system, which component may call which, and where data lives. It describes the default deploy (`agentRegistry=false`, `webSearch=true`, `browserSigning=false`, `episodicMemory=true`). For what each agent checks, see the [agent pages](agents/).
 
-> **Default path since 2026-11-03.** With the latency flags on (the default, see [deploy.md](deploy.md#options)) the worker invokes the three specialists itself at the same time as the pre-check, `brand_visual` and `code_analyst` each call their own copy of the tools server directly (no `phish-tools` Gateway hop), `url_analyst` runs RDAP in process, and the worker asks the orchestrator model for the verdict and the report with two Amazon Bedrock Converse calls (none for the verdict when all three specialists agree a page is legitimate with high confidence). There is no second round and no Harness trace. The diagram and the steps below show the AgentCore Harness path, which `-c directOrchestration=false` or `-c agentRegistry=true` deploys; the Harness, the dispatcher and both Gateways are deployed either way.
+**On this page:** [How a scan works](#how-a-scan-works) · [Harness path (opt-in)](#harness-path-opt-in) · [Questions reviewers ask](#questions-reviewers-ask) · [Agent Registry (opt-in)](#agent-registry-opt-in) · [Fast paths](#fast-paths-error-404-and-site-down) · [Capture](#capture-warnings-redirects-and-capture-gaps) · [One batch](#one-batch) · [Where data lives](#where-data-lives) · [Why this shape](#why-this-shape)
 
-**On this page:** [How a scan works](#how-a-scan-works) · [Questions reviewers ask](#questions-reviewers-ask) · [Agent Registry (opt-in)](#agent-registry-opt-in) · [Fast paths](#fast-paths-error-404-and-site-down) · [Capture](#capture-warnings-redirects-and-capture-gaps) · [One batch](#one-batch) · [Where data lives](#where-data-lives) · [Why this shape](#why-this-shape)
-
-![Architecture: users and API clients reach API Gateway directly or through CloudFront and AWS WAF; the API queues each scan on Amazon SQS for the worker Lambda. The worker pre-checks the URL on the tools server (step 3), then invokes the orchestrator on AgentCore Harness (step 4). The orchestrator makes one tool call through Gateway phish-specialists to the dispatcher, which runs url_analyst, brand_visual and code_analyst in parallel (steps 5 to 7). The specialists use Gateway phish-tools to reach the tools server, which drives AgentCore Browser (steps 8 to 10). A dashed line shows the optional second round from the Gateway to one specialist. The supporting services row has no lines](architecture.png)
+![Architecture: users and API clients reach API Gateway directly or through CloudFront and AWS WAF; the API queues each scan on Amazon SQS for the worker Lambda. The worker pre-checks the URL on the tools server and, at the same time, invokes url_analyst, brand_visual and code_analyst (step 3). brand_visual and code_analyst each capture the page through their own copy of the tools server (step 4), which drives AgentCore Browser (step 5). The worker then asks the orchestrator model on Amazon Bedrock for the verdict and the report (step 6). The supporting services row, including the standby Harness path and the opt-in Agent Registry, has no lines](architecture.png)
 
 ## How a scan works
 
-The numbers match the lines in the diagram. Every call returns the way it came, and every AWS call is signed with SigV4 (IAM).
+The diagram and these steps show the default deploy, with every latency flag on ([configuration.md](configuration.md)). The numbers match the lines in the diagram. Every call returns the way it came, and every AWS call is signed with SigV4 (IAM).
+
+| Step | From and to | What happens |
+| --- | --- | --- |
+| 1 | You to the API | You submit a URL in the web app (CloudFront and AWS WAF, then a web Lambda that signs with SigV4) or call the REST API with SigV4. The API Lambda runs the input guardrail on the URL and writes a `PENDING` row to DynamoDB `scans` |
+| 2 | API to SQS to worker | The API puts one message on the SQS queue. The worker Lambda takes one message at a time, at most 25 at once (`scanConcurrency`) |
+| 3 | Worker to tools server and the 3 specialists | **At the same time:** the worker calls `precheck_url` on the tools server (no model), which opens the scan's tools session, and invokes `url_analyst`, `brand_visual` and `code_analyst` on AgentCore Runtime (Claude Sonnet 5.5 each). A final HTTP 404 or a dead site ends the scan with a fixed answer ([Fast paths](#fast-paths-error-404-and-site-down)). `url_analyst` runs the RDAP lookup and the redirect probe in its own process, with answers cached in the result cache |
+| 4 | Page specialists to their tools server | `brand_visual` and `code_analyst` each call their own copy of the tools server directly (`capture_page`, `capture_page_code`), on the scan's tools session. Each specialist may invoke only its own copy |
+| 5 | Tools server to AgentCore Browser | The tools server is the only component that opens a browser or writes the screenshot and page capture. Each specialist saves its Finding to S3 |
+| 6 | Worker to the orchestrator model | The worker reads the three Findings, recalls up to 3 similar past scans from AgentCore Memory, and asks the orchestrator model (Claude Opus 5.5 on Amazon Bedrock, effort `medium`, prompt caching on) for the verdict with one Converse call. When all three specialists say legitimate with confidence 80 or more, no capture reports the page unobserved, none errored and nothing above medium was raised, the worker stores `legitimate`, risk 5, `allow` without this call (the unanimous fast path) |
+
+Then the worker stores the verdict in `scans` (`COMPLETE`, `report_status` `PENDING`) and a one-line summary in AgentCore Memory, asks the orchestrator model for the report with a second Converse call, screens it with the output guardrail and sets `report_status` `READY` (`FAILED` if it could not be written; the verdict stands). The page-not-observed and untrusted-certificate caps apply on every path.
+
+Not drawn as numbered lines:
+
+- **Web search.** When a page names a brand whose official site the model is unsure of, `brand_visual` calls AgentCore Web Search through its own Gateway `phish-web-search` in the `us-east-1` edge stack (in `us-east-1`, `eu-west-1` or `ap-northeast-1` it is a target on the regional tools Gateway instead) and caches the answer.
+- **Deadlines.** Each specialist has its own deadline and writes its own Finding; a specialist that fails writes nothing and becomes an error Finding when the worker reads the Findings back.
+
+Supporting services, and who uses them:
+
+| Service | Used by |
+| --- | --- |
+| DynamoDB `scans` | The API Lambda writes `PENDING`; the worker writes the verdict and report |
+| S3 artifacts | The specialists and the tools server write; the worker reads the Findings |
+| DynamoDB result cache | RDAP answers (`url_analyst`) and web search answers (`brand_visual`) |
+| AgentCore Memory | The worker only |
+| Bedrock Guardrails | Input check on the URL (API Lambda and CSV splitter), output check on the report (worker) |
+| AgentCore Web Search | `brand_visual` only, through its own Gateway |
+| Harness path (standby) | AgentCore Harness, the dispatcher and the `phish-specialists` and `phish-tools` Gateways are deployed but off the scan path; see [Harness path (opt-in)](#harness-path-opt-in) |
+| AWS Agent Registry | Not deployed by default; see [Agent Registry (opt-in)](#agent-registry-opt-in) |
+
+Left out of the diagram: Amazon Cognito sign-in, the CSV upload and split Lambda, the stats Lambda, the sweepers, AWS KMS and Amazon CloudWatch ([security.md](security.md) covers them).
+
+## Harness path (opt-in)
+
+`-c directOrchestration=false` (or `-c agentRegistry=true`, which selects it on its own) puts the orchestrator on AgentCore Harness. It is slower and costs more (measured in [evaluation.md](evaluation.md#latency-flags-on-by-default-2026-11-03)), but it keeps the Harness trace in AgentCore observability and an optional second round. The steps:
 
 | Step | From and to | What happens |
 | --- | --- | --- |
@@ -25,27 +58,8 @@ The numbers match the lines in the diagram. Every call returns the way it came, 
 | 9 | Gateway to tools server | The tools server (no model) is the only component that opens a browser or writes the screenshot and page capture |
 | 10 | Tools server to AgentCore Browser | The tools server loads the page in AgentCore Browser, and runs the RDAP lookup over the internet with answers cached in the result cache |
 
-Then the orchestrator replies with a compact verdict. The worker stores it in `scans` (`COMPLETE`, `report_status` `PENDING`) and a one-line summary in AgentCore Memory. On the same Harness session it asks for the report (turn 2, no tool calls), screens it with the output guardrail and sets `report_status` `READY` (`FAILED` if it could not be written; the verdict stands). The Harness has no managed memory, and the worker passes `actorId` = the scan id, so no state carries from one scan to the next.
 
-Not drawn as numbered lines:
-
-- **Optional second round (the dashed line).** When the first-round Findings conflict, or one failed and the verdict depends on it, the orchestrator may call one specialist tool (`url-analyst___analyze`, `brand-visual___analyze` or `code-analyst___analyze`, never the dispatcher) once more on the same Gateway, at most once per scan.
-- **Web search.** When a page names a brand whose official site the model is unsure of, `brand_visual` calls AgentCore Web Search through its own Gateway `phish-web-search` in the `us-east-1` edge stack (in `us-east-1`, `eu-west-1` or `ap-northeast-1` it is a second target on `phish-tools` instead) and caches the answer.
-- **Redirect probe.** `url_analyst` reads the URL's HTTP redirect chain in process with the same guarded probe the pre-check uses ([url_analyst](agents/url_analyst.md)).
-
-Supporting services, and who uses them:
-
-| Service | Used by |
-| --- | --- |
-| DynamoDB `scans` | The API Lambda writes `PENDING`; the worker writes the verdict and report |
-| S3 artifacts | The specialists and the tools server write; the dispatcher writes only an error Finding for a specialist that could not run; the worker reads the Findings |
-| DynamoDB result cache | RDAP answers (tools server) and web search answers (`brand_visual`) |
-| AgentCore Memory | The worker only |
-| Bedrock Guardrails | Input check on the URL (API Lambda and CSV splitter), output check on the report (worker) |
-| AgentCore Web Search | `brand_visual` only, through its own Gateway |
-| AWS Agent Registry | Not deployed by default; see [Agent Registry (opt-in)](#agent-registry-opt-in) |
-
-Left out of the diagram: Amazon Cognito sign-in, the CSV upload and split Lambda, the stats Lambda, the sweepers, AWS KMS and Amazon CloudWatch ([security.md](security.md) covers them).
+Then the orchestrator replies with a compact verdict, and on the same Harness session it writes the report (turn 2, no tool calls). The Harness has no managed memory, and the worker passes `actorId` = the scan id, so no state carries from one scan to the next. When the first-round Findings conflict, or one failed and the verdict depends on it, the orchestrator may call one specialist tool (`url-analyst___analyze`, `brand-visual___analyze` or `code-analyst___analyze`, never the dispatcher) once more on the same Gateway, at most once per scan. `-c directTools=false` also routes the captures through the `phish-tools` Gateway.
 
 ## Questions reviewers ask
 
@@ -72,7 +86,7 @@ The lookup is informational. AgentCore Gateway has no target type that reads a r
 
 - A final HTTP 404 ends the scan as `error_404` (Error 404).
 - HTTP 410, a host that does not resolve, a refused or reset connection, or a redirect to a host that does not resolve ends the scan as `site_down` (Site down). The fixed report lists the addresses tried, defanged and in order, and the reason.
-- Both answers are risk 10, confidence high, action allow, with no model call and no specialists. A page that answers anything else runs the full scan, even when the browser refused it.
+- Both answers are risk 10, confidence high, action allow, with no orchestrator call. On the default path the three specialists start at the same time as the pre-check, so they finish on their own and their tokens are billed, although the scan record's `cost_usd` is `0` and the worker never reads their Findings. On the Harness path (`-c directOrchestration=false`) no specialist runs. A page that answers anything else runs the full scan, even when the browser refused it.
 
 ## Capture: warnings, redirects and capture gaps
 

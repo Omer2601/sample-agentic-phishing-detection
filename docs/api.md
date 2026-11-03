@@ -138,7 +138,7 @@ awscurl --service execute-api --region "$AWS_REGION" "$API/scans/lookup?url=http
 
 `verdict`, `risk_score` and `confidence` are `null` until the scan is `COMPLETE`. `age_seconds` counts from `completed_at`, or from `queued_at` while the scan is not complete; decide your own freshness limit. A URL you never scanned gives `{"found": false, "url": "..."}`. A bad `url` or an `include_failed` other than `true`, `false`, `1` or `0` is a `400`.
 
-Deployed with `-c scanDedup=true` (off by default, see [deploy.md](deploy.md#options)), `POST /scan` from a direct API caller hands back your own `PENDING` or `RUNNING` scan of the same URL, or one that finished `COMPLETE` in the last 24 hours, as `202` with `"deduplicated": true`, instead of scanning again. FAILED scans are never reused, and `"force": true` always starts a new scan. Scans submitted from the web console are never deduplicated, so "scan again" there always runs a fresh scan. Lookup works whether or not dedup is on; scans stored before this version are not found by either.
+Deployed with `-c scanDedup=true` (off by default, see [configuration.md](configuration.md)), `POST /scan` from a direct API caller hands back your own `PENDING` or `RUNNING` scan of the same URL, or one that finished `COMPLETE` in the last 24 hours, as `202` with `"deduplicated": true`, instead of scanning again. FAILED scans are never reused, and `"force": true` always starts a new scan. Scans submitted from the web console are never deduplicated, so "scan again" there always runs a fresh scan. Lookup works whether or not dedup is on; scans stored before this version are not found by either.
 
 ## Verdict first, report second
 
@@ -196,7 +196,7 @@ A publish flow can call `POST /scan`, poll `GET /scans/{id}` until `status` is `
 | `verdict.action` `allow` and `page_observed` is not `false` | Publish |
 
 > [!WARNING]
-> The verdict is advisory. Hold risky links for a person to review rather than rejecting them automatically. A complete gate script is in the [README](../README.md#test-the-api-a-pre-publish-gate).
+> The verdict is advisory. Hold risky links for a person to review rather than rejecting them automatically. A complete gate script is in the [getting started guide](getting-started.md#test-the-api-a-pre-publish-gate).
 
 ## The disclaimer field
 

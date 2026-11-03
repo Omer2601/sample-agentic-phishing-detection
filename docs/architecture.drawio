@@ -1,17 +1,17 @@
 <mxfile host="drawio" compressed="false">
   <diagram id="architecture" name="Architecture">
-    <mxGraphModel dx="1560" dy="1010" grid="1" gridSize="10" page="1" pageWidth="1560" pageHeight="1010" background="#FFFFFF">
+    <mxGraphModel dx="1560" dy="1070" grid="1" gridSize="10" page="1" pageWidth="1560" pageHeight="1070" background="#FFFFFF">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="group0" value="Amazon Bedrock AgentCore: the scan" vertex="1" parent="1" style="rounded=0;dashed=1;dashPattern=4 4;fillColor=none;strokeColor=#01A88D;strokeWidth=2;verticalAlign=bottom;align=right;fontSize=18;fontStyle=1;fontColor=#01A88D;spacingLeft=10;spacingRight=10;spacingBottom=4;">
-          <mxGeometry x="20" y="245" width="1520" height="465" as="geometry" />
+        <mxCell id="group0" value="The scan: Amazon Bedrock and AgentCore" vertex="1" parent="1" style="rounded=0;dashed=1;dashPattern=4 4;fillColor=none;strokeColor=#01A88D;strokeWidth=2;verticalAlign=bottom;align=right;fontSize=18;fontStyle=1;fontColor=#01A88D;spacingLeft=10;spacingRight=10;spacingBottom=4;">
+          <mxGeometry x="20" y="245" width="1520" height="530" as="geometry" />
         </mxCell>
         <mxCell id="group1" value="Supporting services (no lines)" vertex="1" parent="1" style="rounded=0;dashed=1;dashPattern=4 4;fillColor=none;strokeColor=#7D8998;strokeWidth=2;verticalAlign=bottom;align=left;fontSize=18;fontStyle=1;fontColor=#7D8998;spacingLeft=10;spacingRight=10;spacingBottom=4;">
-          <mxGeometry x="20" y="760" width="1520" height="190" as="geometry" />
+          <mxGeometry x="20" y="820" width="1520" height="190" as="geometry" />
         </mxCell>
-        <mxCell id="specialists" value="3 specialists" vertex="1" parent="1" style="rounded=1;arcSize=4;fillColor=#F2FBF9;strokeColor=#01A88D;strokeWidth=1;verticalAlign=top;align=center;fontSize=16;fontStyle=1;fontColor=#01A88D;spacingTop=4;">
-          <mxGeometry x="700" y="272" width="160" height="356" as="geometry" />
+        <mxCell id="specialists" value="3 specialists (Sonnet)" vertex="1" parent="1" style="rounded=1;arcSize=4;fillColor=#F2FBF9;strokeColor=#01A88D;strokeWidth=1;verticalAlign=top;align=center;fontSize=16;fontStyle=1;fontColor=#01A88D;spacingTop=4;">
+          <mxGeometry x="465" y="292" width="190" height="416" as="geometry" />
         </mxCell>
         <mxCell id="client" value="Users and&#10;API clients" vertex="1" parent="1" style="shape=mxgraph.aws4.user;fillColor=#232F3E;strokeColor=none;aspect=fixed;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=0;fontSize=16;fontColor=#232F3E;whiteSpace=nowrap;">
           <mxGeometry x="88" y="80" width="64" height="64" as="geometry" />
@@ -28,56 +28,56 @@
         <mxCell id="worker" value="AWS Lambda&#10;worker" vertex="1" parent="1" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;fillColor=#ED7100;strokeColor=#ffffff;outlineConnect=0;aspect=fixed;verticalLabelPosition=top;verticalAlign=bottom;align=center;html=0;fontSize=16;fontColor=#232F3E;whiteSpace=nowrap;">
           <mxGeometry x="1188" y="80" width="64" height="64" as="geometry" />
         </mxCell>
-        <mxCell id="harness" value="AgentCore Harness&#10;orchestrator (Opus)" vertex="1" parent="1" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.bedrock_agentcore;fillColor=#01A88D;strokeColor=#ffffff;outlineConnect=0;aspect=fixed;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=0;fontSize=16;fontColor=#232F3E;whiteSpace=nowrap;">
-          <mxGeometry x="88" y="420" width="64" height="64" as="geometry" />
+        <mxCell id="model" value="Amazon Bedrock&#10;orchestrator (Opus)" vertex="1" parent="1" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.bedrock;fillColor=#01A88D;strokeColor=#ffffff;outlineConnect=0;aspect=fixed;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=0;fontSize=16;fontColor=#232F3E;whiteSpace=nowrap;">
+          <mxGeometry x="88" y="470" width="64" height="64" as="geometry" />
         </mxCell>
-        <mxCell id="gateway" value="Gateway&#10;phish-specialists" vertex="1" parent="1" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.bedrock_agentcore;fillColor=#01A88D;strokeColor=#ffffff;outlineConnect=0;aspect=fixed;verticalLabelPosition=top;verticalAlign=bottom;align=center;html=0;fontSize=16;fontColor=#232F3E;whiteSpace=nowrap;">
-          <mxGeometry x="308" y="420" width="64" height="64" as="geometry" />
-        </mxCell>
-        <mxCell id="dispatcher" value="dispatcher&#10;(no model)" vertex="1" parent="1" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.bedrock_agentcore;fillColor=#01A88D;strokeColor=#ffffff;outlineConnect=0;aspect=fixed;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=0;fontSize=16;fontColor=#232F3E;whiteSpace=nowrap;">
-          <mxGeometry x="528" y="420" width="64" height="64" as="geometry" />
-        </mxCell>
-        <mxCell id="rt_url" value="url_analyst" vertex="1" parent="1" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.bedrock_agentcore;fillColor=#01A88D;strokeColor=#ffffff;outlineConnect=0;aspect=fixed;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=0;fontSize=16;fontColor=#232F3E;whiteSpace=nowrap;">
-          <mxGeometry x="748" y="310" width="64" height="64" as="geometry" />
+        <mxCell id="rt_url" value="url_analyst&#10;(RDAP in process)" vertex="1" parent="1" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.bedrock_agentcore;fillColor=#01A88D;strokeColor=#ffffff;outlineConnect=0;aspect=fixed;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=0;fontSize=16;fontColor=#232F3E;whiteSpace=nowrap;">
+          <mxGeometry x="528" y="330" width="64" height="64" as="geometry" />
         </mxCell>
         <mxCell id="rt_brand" value="brand_visual" vertex="1" parent="1" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.bedrock_agentcore;fillColor=#01A88D;strokeColor=#ffffff;outlineConnect=0;aspect=fixed;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=0;fontSize=16;fontColor=#232F3E;whiteSpace=nowrap;">
-          <mxGeometry x="748" y="420" width="64" height="64" as="geometry" />
+          <mxGeometry x="528" y="470" width="64" height="64" as="geometry" />
         </mxCell>
         <mxCell id="rt_code" value="code_analyst" vertex="1" parent="1" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.bedrock_agentcore;fillColor=#01A88D;strokeColor=#ffffff;outlineConnect=0;aspect=fixed;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=0;fontSize=16;fontColor=#232F3E;whiteSpace=nowrap;">
-          <mxGeometry x="748" y="530" width="64" height="64" as="geometry" />
+          <mxGeometry x="528" y="610" width="64" height="64" as="geometry" />
         </mxCell>
-        <mxCell id="tools_gw" value="Gateway&#10;phish-tools" vertex="1" parent="1" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.bedrock_agentcore;fillColor=#01A88D;strokeColor=#ffffff;outlineConnect=0;aspect=fixed;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=0;fontSize=16;fontColor=#232F3E;whiteSpace=nowrap;">
-          <mxGeometry x="968" y="420" width="64" height="64" as="geometry" />
+        <mxCell id="tools_pre" value="tools server&#10;(pre-check)" vertex="1" parent="1" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.bedrock_agentcore;fillColor=#01A88D;strokeColor=#ffffff;outlineConnect=0;aspect=fixed;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=0;fontSize=16;fontColor=#232F3E;whiteSpace=nowrap;">
+          <mxGeometry x="1188" y="330" width="64" height="64" as="geometry" />
         </mxCell>
-        <mxCell id="tools_rt" value="tools server&#10;(no model)" vertex="1" parent="1" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.bedrock_agentcore;fillColor=#01A88D;strokeColor=#ffffff;outlineConnect=0;aspect=fixed;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=0;fontSize=16;fontColor=#232F3E;whiteSpace=nowrap;">
-          <mxGeometry x="1188" y="420" width="64" height="64" as="geometry" />
+        <mxCell id="tools_brand" value="tools server&#10;(brand copy)" vertex="1" parent="1" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.bedrock_agentcore;fillColor=#01A88D;strokeColor=#ffffff;outlineConnect=0;aspect=fixed;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=0;fontSize=16;fontColor=#232F3E;whiteSpace=nowrap;">
+          <mxGeometry x="968" y="470" width="64" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="tools_code" value="tools server&#10;(code copy)" vertex="1" parent="1" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.bedrock_agentcore;fillColor=#01A88D;strokeColor=#ffffff;outlineConnect=0;aspect=fixed;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=0;fontSize=16;fontColor=#232F3E;whiteSpace=nowrap;">
+          <mxGeometry x="968" y="610" width="64" height="64" as="geometry" />
         </mxCell>
         <mxCell id="browser" value="AgentCore&#10;Browser" vertex="1" parent="1" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.bedrock_agentcore;fillColor=#01A88D;strokeColor=#ffffff;outlineConnect=0;aspect=fixed;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=0;fontSize=16;fontColor=#232F3E;whiteSpace=nowrap;">
-          <mxGeometry x="1408" y="420" width="64" height="64" as="geometry" />
+          <mxGeometry x="1408" y="470" width="64" height="64" as="geometry" />
         </mxCell>
         <mxCell id="ddb" value="DynamoDB&#10;scans" vertex="1" parent="1" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.dynamodb;fillColor=#C925D1;strokeColor=#ffffff;outlineConnect=0;aspect=fixed;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=0;fontSize=16;fontColor=#232F3E;whiteSpace=nowrap;">
-          <mxGeometry x="88" y="790" width="64" height="64" as="geometry" />
+          <mxGeometry x="88" y="850" width="64" height="64" as="geometry" />
         </mxCell>
         <mxCell id="artifacts" value="Amazon S3&#10;artifacts" vertex="1" parent="1" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;fillColor=#7AA116;strokeColor=#ffffff;outlineConnect=0;aspect=fixed;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=0;fontSize=16;fontColor=#232F3E;whiteSpace=nowrap;">
-          <mxGeometry x="308" y="790" width="64" height="64" as="geometry" />
+          <mxGeometry x="278" y="850" width="64" height="64" as="geometry" />
         </mxCell>
         <mxCell id="cache" value="DynamoDB&#10;result cache" vertex="1" parent="1" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.dynamodb;fillColor=#C925D1;strokeColor=#ffffff;outlineConnect=0;aspect=fixed;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=0;fontSize=16;fontColor=#232F3E;whiteSpace=nowrap;">
-          <mxGeometry x="528" y="790" width="64" height="64" as="geometry" />
+          <mxGeometry x="468" y="850" width="64" height="64" as="geometry" />
         </mxCell>
         <mxCell id="memory" value="AgentCore&#10;Memory" vertex="1" parent="1" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.bedrock_agentcore;fillColor=#01A88D;strokeColor=#ffffff;outlineConnect=0;aspect=fixed;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=0;fontSize=16;fontColor=#232F3E;whiteSpace=nowrap;">
-          <mxGeometry x="748" y="790" width="64" height="64" as="geometry" />
+          <mxGeometry x="658" y="850" width="64" height="64" as="geometry" />
         </mxCell>
         <mxCell id="guardrails" value="Bedrock&#10;Guardrails" vertex="1" parent="1" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.bedrock;fillColor=#01A88D;strokeColor=#ffffff;outlineConnect=0;aspect=fixed;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=0;fontSize=16;fontColor=#232F3E;whiteSpace=nowrap;">
-          <mxGeometry x="968" y="790" width="64" height="64" as="geometry" />
+          <mxGeometry x="848" y="850" width="64" height="64" as="geometry" />
         </mxCell>
         <mxCell id="websearch" value="AgentCore&#10;Web Search" vertex="1" parent="1" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.bedrock_agentcore;fillColor=#01A88D;strokeColor=#ffffff;outlineConnect=0;aspect=fixed;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=0;fontSize=16;fontColor=#232F3E;whiteSpace=nowrap;">
-          <mxGeometry x="1188" y="790" width="64" height="64" as="geometry" />
+          <mxGeometry x="1038" y="850" width="64" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="harness" value="Harness path&#10;(standby)" vertex="1" parent="1" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.bedrock_agentcore;fillColor=#01A88D;strokeColor=#ffffff;outlineConnect=0;aspect=fixed;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=0;fontSize=16;fontColor=#232F3E;whiteSpace=nowrap;">
+          <mxGeometry x="1228" y="850" width="64" height="64" as="geometry" />
         </mxCell>
         <mxCell id="registry" value="Agent Registry&#10;(opt-in, off)" vertex="1" parent="1" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.bedrock_agentcore;fillColor=#01A88D;strokeColor=#ffffff;outlineConnect=0;aspect=fixed;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=0;fontSize=16;fontColor=#232F3E;whiteSpace=nowrap;">
-          <mxGeometry x="1408" y="790" width="64" height="64" as="geometry" />
+          <mxGeometry x="1418" y="850" width="64" height="64" as="geometry" />
         </mxCell>
-        <mxCell id="footer" value="Solid lines: the scan path, numbered in order (docs/architecture.md explains each step). Dashed: the optional second round. Bottom row: off the path, no lines.&#10;Agent Registry is deployed only with -c agentRegistry=true. Every AWS call is signed with SigV4." vertex="1" parent="1" style="text;html=0;fillColor=none;strokeColor=none;fontSize=14;fontColor=#232F3E;align=left;verticalAlign=top;whiteSpace=wrap;">
-          <mxGeometry x="20" y="958" width="1520" height="44" as="geometry" />
+        <mxCell id="footer" value="Solid lines: the scan path, numbered in order (docs/architecture.md explains each step). Bottom row: off the path, no lines. Harness path: AgentCore Harness, the dispatcher and both Gateways, used with -c directOrchestration=false.&#10;Agent Registry is deployed only with -c agentRegistry=true. Every AWS call is signed with SigV4." vertex="1" parent="1" style="text;html=0;fillColor=none;strokeColor=none;fontSize=14;fontColor=#232F3E;align=left;verticalAlign=top;whiteSpace=wrap;">
+          <mxGeometry x="20" y="1018" width="1520" height="44" as="geometry" />
         </mxCell>
         <mxCell id="client_cf" value="1 HTTPS" edge="1" parent="1" source="client" target="cf" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#545B64;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=15;fontColor=#232F3E;labelBackgroundColor=#ffffff;">
           <mxGeometry relative="1" as="geometry" />
@@ -99,56 +99,47 @@
         <mxCell id="sqs_worker" value="2 trigger" edge="1" parent="1" source="sqs" target="worker" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#545B64;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=15;fontColor=#232F3E;labelBackgroundColor=#ffffff;">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="worker_precheck" value="3 precheck" edge="1" parent="1" source="worker" target="tools_rt" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#545B64;strokeWidth=2;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;fontSize=15;fontColor=#232F3E;labelBackgroundColor=#ffffff;">
+        <mxCell id="worker_precheck" value="3 pre-check" edge="1" parent="1" source="worker" target="tools_pre" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#545B64;strokeWidth=2;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;fontSize=15;fontColor=#232F3E;labelBackgroundColor=#ffffff;">
           <mxGeometry relative="1" x="0.6" as="geometry" />
         </mxCell>
-        <mxCell id="worker_harness" value="4 invoke" edge="1" parent="1" source="worker" target="harness" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#545B64;strokeWidth=2;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=15;fontColor=#232F3E;labelBackgroundColor=#ffffff;">
+        <mxCell id="worker_specs" value="3 in parallel" edge="1" parent="1" source="worker" target="specialists" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#545B64;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=15;fontColor=#232F3E;labelBackgroundColor=#ffffff;">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="1204.0" y="225" />
-              <mxPoint x="120" y="225" />
+              <mxPoint x="1220" y="268" />
+              <mxPoint x="560" y="268" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="harness_gw" value="5 one tool" edge="1" parent="1" source="harness" target="gateway" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#545B64;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=15;fontColor=#232F3E;labelBackgroundColor=#ffffff;">
+        <mxCell id="brand_tools" value="4 capture" edge="1" parent="1" source="rt_brand" target="tools_brand" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#545B64;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=15;fontColor=#232F3E;labelBackgroundColor=#ffffff;">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="gw_dispatcher" value="6 route" edge="1" parent="1" source="gateway" target="dispatcher" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#545B64;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=15;fontColor=#232F3E;labelBackgroundColor=#ffffff;">
+        <mxCell id="code_tools" value="4 capture" edge="1" parent="1" source="rt_code" target="tools_code" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#545B64;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=15;fontColor=#232F3E;labelBackgroundColor=#ffffff;">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="fan_url" value="" edge="1" parent="1" source="dispatcher" target="rt_url" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#545B64;strokeWidth=2;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=15;fontColor=#232F3E;labelBackgroundColor=#ffffff;">
+        <mxCell id="pre_browser" value="" edge="1" parent="1" source="tools_pre" target="browser" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#545B64;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;fontSize=15;fontColor=#232F3E;labelBackgroundColor=#ffffff;">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="670" y="436.0" />
-              <mxPoint x="670" y="342.0" />
+              <mxPoint x="1380" y="362.0" />
+              <mxPoint x="1380" y="486.0" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="fan_brand" value="7 in parallel" edge="1" parent="1" source="dispatcher" target="rt_brand" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#545B64;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=15;fontColor=#232F3E;labelBackgroundColor=#ffffff;">
-          <mxGeometry relative="1" x="-0.3" as="geometry" />
+        <mxCell id="brand_browser" value="5 browse" edge="1" parent="1" source="tools_brand" target="browser" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#545B64;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=15;fontColor=#232F3E;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" x="-0.4" as="geometry" />
         </mxCell>
-        <mxCell id="fan_code" value="" edge="1" parent="1" source="dispatcher" target="rt_code" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#545B64;strokeWidth=2;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=15;fontColor=#232F3E;labelBackgroundColor=#ffffff;">
+        <mxCell id="code_browser" value="" edge="1" parent="1" source="tools_code" target="browser" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#545B64;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;fontSize=15;fontColor=#232F3E;labelBackgroundColor=#ffffff;">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="670" y="468.0" />
-              <mxPoint x="670" y="562.0" />
+              <mxPoint x="1400" y="642.0" />
+              <mxPoint x="1400" y="518.0" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="spec_tools" value="8 MCP tools" edge="1" parent="1" source="specialists" target="tools_gw" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#545B64;strokeWidth=2;exitX=1;exitY=0.5056179775280899;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=15;fontColor=#232F3E;labelBackgroundColor=#ffffff;">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="tools_gw_rt" value="9 route" edge="1" parent="1" source="tools_gw" target="tools_rt" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#545B64;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=15;fontColor=#232F3E;labelBackgroundColor=#ffffff;">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="tools_browser" value="10 browse" edge="1" parent="1" source="tools_rt" target="browser" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#545B64;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=15;fontColor=#232F3E;labelBackgroundColor=#ffffff;">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="round2" value="optional second round" edge="1" parent="1" source="gateway" target="specialists" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#545B64;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;fontSize=15;fontColor=#232F3E;labelBackgroundColor=#ffffff;dashed=1;dashPattern=6 4;">
+        <mxCell id="worker_model" value="6 verdict, report" edge="1" parent="1" source="worker" target="model" style="edgeStyle=none;rounded=0;html=0;endArrow=block;endFill=1;strokeColor=#545B64;strokeWidth=2;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=15;fontColor=#232F3E;labelBackgroundColor=#ffffff;">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="340" y="665" />
-              <mxPoint x="780" y="665" />
+              <mxPoint x="1204.0" y="210" />
+              <mxPoint x="120" y="210" />
             </Array>
           </mxGeometry>
         </mxCell>

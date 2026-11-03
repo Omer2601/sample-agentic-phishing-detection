@@ -53,7 +53,7 @@ The service attaches the bold notice at the top of this page itself, so it does 
 | Orchestrator | Claude Opus 5.5   | `us.anthropic.claude-opus-5-5`       | US Regions                                     |
 | Specialists  | Claude Sonnet 5.5 | `global.anthropic.claude-sonnet-5-5` | Any commercial Region Amazon Bedrock routes to |
 
-To keep specialist traffic in the US, deploy with `-c specialistModel=` set to a `us.` inference profile available to you. See [deploy.md](deploy.md#options).
+To keep specialist traffic in the US, deploy with `-c specialistModel=` set to a `us.` inference profile available to you. See [configuration.md](configuration.md).
 
 ## Guardrails and their limits
 
