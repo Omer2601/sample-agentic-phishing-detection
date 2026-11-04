@@ -1,0 +1,52 @@
+{
+  "checked": "2026-10-21",
+  "effective": "2026-10-01",
+  "source": "AWS Price List API, service AmazonBedrockFoundationModels, feature On-demand Inference, all Regions",
+  "unit": "USD per 1M tokens, on-demand",
+  "note": "Keyed by the model id without its inference profile prefix. A global. profile uses the global rate. A geographic profile (us., eu., apac., au., jp.) is priced like its source Region, and a bare model id is the in-Region rate; on 2026-10-21 the Price List gave the same in-Region rate in every commercial Region that lists one (GovCloud is higher and is not covered), so one regional rate serves all of them. cache_read and cache_write are the Bedrock prompt-cache rates (5-minute cache writes). Haiku 4.5 is not a default model; it is kept so a -c orchestratorModel or specialistModel override is still priced. Token cost only; AgentCore Runtime, Browser, Gateway and Lambda are not included.",
+  "geo_prefixes": ["us", "eu", "apac", "au", "jp"],
+  "models": {
+    "anthropic.claude-opus-5-5": {
+      "global": {
+        "input": 4.0,
+        "output": 20.0,
+        "cache_read": 0.2,
+        "cache_write": 5.0
+      },
+      "regional": {
+        "input": 4.4,
+        "output": 22.0,
+        "cache_read": 0.22,
+        "cache_write": 5.5
+      }
+    },
+    "anthropic.claude-sonnet-5-5": {
+      "global": {
+        "input": 2.0,
+        "output": 10.0,
+        "cache_read": 0.1,
+        "cache_write": 2.5
+      },
+      "regional": {
+        "input": 2.2,
+        "output": 11.0,
+        "cache_read": 0.11,
+        "cache_write": 2.75
+      }
+    },
+    "anthropic.claude-haiku-4-5-20251001-v1:0": {
+      "global": {
+        "input": 1.0,
+        "output": 5.0,
+        "cache_read": 0.1,
+        "cache_write": 1.25
+      },
+      "regional": {
+        "input": 1.1,
+        "output": 5.5,
+        "cache_read": 0.11,
+        "cache_write": 1.375
+      }
+    }
+  }
+}

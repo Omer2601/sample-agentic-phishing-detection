@@ -1,0 +1,93 @@
+[project]
+name = "sample-agentic-phishing-detection"
+version = "2.0.0"
+requires-python = ">=3.13"
+# Depending on the workspace members makes a plain `uv run pytest` at the root see them.
+dependencies = [
+  "phish-contracts",
+  "phish-agents",
+  "phish-backend",
+  "phish-infra",
+]
+
+[dependency-groups]
+dev = [
+  "pytest==9.1.1",
+  "pytest-asyncio==1.4.0",
+  "ruff==0.15.12",
+  "moto[all]==5.2.3",
+  "defusedxml==0.7.1",
+  # web/server and web/devproxy tests. pyjwt matches web/server/requirements.txt. boto3 is
+  # not pinned here: it comes from phish-agents, and web pins its own copy only inside the
+  # web Lambda bundle (web/server/requirements.txt).
+  "pyjwt[crypto]==2.15.1",
+]
+
+[tool.uv]
+package = false
+# Floors for transitive packages with known CVEs, so no future lock or upgrade can
+# resolve a vulnerable release again: urllib3 < 2.7.0 (decompression bombs, header
+# forwarding on redirects), pyjwt < 2.13.0 (crit header, HMAC key confusion) and
+# asteval < 1.0.9 (sandbox escapes; pulled in only by checkov, which now runs as an
+# isolated uv tool instead of a project dependency) and certifi < 2026.10.19 (bundles the
+# distrusted emSign root CAs).
+constraint-dependencies = [
+    "urllib3>=2.7.0",
+    "pyjwt>=2.13.0",
+    "asteval>=1.0.9",
+    "certifi>=2026.10.19",
+]
+
+[tool.uv.workspace]
+members = ["contracts", "agents", "backend", "infra"]
+
+[tool.uv.sources]
+phish-contracts = { workspace = true }
+phish-agents = { workspace = true }
+phish-backend = { workspace = true }
+phish-infra = { workspace = true }
+
+[tool.pytest.ini_options]
+markers = ["e2e: needs a deployed PhishTriageAgentic stack (run with -m e2e)"]
+# importlib mode: several packages have test files with the same basename.
+addopts = "-m 'not e2e' --import-mode=importlib"
+asyncio_mode = "auto"
+# ".": root tests package (tests.e2e, tests.docs). Test helpers have unique top-level
+# names so they never collide with the root tests package: "agents/tests" holds
+# agent_fakes, "backend/tests" holds backend_testkit.
+pythonpath = [".", "agents/tests", "backend/tests"]
+# cdk.out holds staged asset copies (including other packages' tests) after a synth.
+norecursedirs = ["cdk.out", "node_modules", "build", "dist", ".venv", "__pycache__"]
+testpaths = [
+  "contracts/tests",
+  "agents/tests",
+  "backend/tests",
+  "infra/tests",
+  "web/server",
+  "web/devproxy",
+  "tests",
+  "eval",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S", "BLE"]
+ignore = ["S101"]
+
+[tool.ruff.lint.per-file-ignores]
+# Developer scripts and tests run fixed argument lists (git, uv, npx, npm)
+# resolved from PATH on purpose; nothing user-controlled reaches a subprocess.
+"scripts/*.py" = ["S603", "S607"]
+"tests/**/*.py" = ["S603", "S607"]
+
+[tool.ruff.lint.isort]
+known-first-party = [
+  "phish_contracts",
+  "phish_agents",
+  "phish_backend",
+  "phish_infra",
+  "tests",
+]

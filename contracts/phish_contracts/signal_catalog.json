@@ -1,0 +1,266 @@
+{
+  "base64_decode": {
+    "title": "Decodes base64 data in the browser",
+    "explain": "The page decodes base64 text with atob() while it runs. This is common in legitimate sites, but phishing kits use it to hide scripts, form targets or URLs from scanners."
+  },
+  "blocked_by_browser": {
+    "title": "The isolated browser refused to open this URL",
+    "explain": "The managed browser stopped the navigation before any request was sent. This is a gap in what could be captured, not evidence of phishing."
+  },
+  "blocked_by_guard": {
+    "title": "Our URL safety guard did not open this address",
+    "explain": "Our own SSRF guard refused the URL, a redirect hop or the final address (for example an internal address). This is our policy, not evidence about the site."
+  },
+  "blocked_by_site": {
+    "title": "The site blocked the automated visit",
+    "explain": "The site refused or challenged the isolated browser, so the page could not be fully seen. This is a capture gap, not evidence of phishing on its own."
+  },
+  "bot_challenge": {
+    "title": "A bot check blocked the capture",
+    "explain": "A Cloudflare challenge, captcha or similar bot wall did not clear in time, so the real page was not captured. This lowers confidence but is not evidence on its own."
+  },
+  "brand_domain_mismatch": {
+    "title": "The page claims a brand that does not own this domain",
+    "explain": "The page presents itself as a known brand, but the domain is not one that brand uses. This is the core pattern of brand impersonation."
+  },
+  "brand_in_free_hosting_subdomain": {
+    "title": "A brand name in a free hosting subdomain",
+    "explain": "The subdomain on a free hosting service contains a known brand name. This is a common way to make a throwaway page look official."
+  },
+  "brand_in_subdomain": {
+    "title": "A brand name appears in the subdomain",
+    "explain": "A known brand name sits in the subdomain rather than the registered domain, for example brand.example-login.com. This makes a link look official when it is not."
+  },
+  "brand_lookalike_domain": {
+    "title": "The domain imitates a known brand",
+    "explain": "The domain looks like a real brand's domain with small changes such as swapped, extra or look-alike letters."
+  },
+  "brand_lookalike_subdomain": {
+    "title": "The subdomain imitates a known brand",
+    "explain": "The subdomain is written to look like a real brand's address, with small changes or extra words."
+  },
+  "brand_lure_hostname": {
+    "title": "The host name combines a brand with lure words",
+    "explain": "The host name mixes a brand name with words like login, verify, secure or account to look like an official site."
+  },
+  "brand_lure_in_url": {
+    "title": "The URL combines a brand with lure words",
+    "explain": "The URL mixes a brand name with words like login, verify, secure or account to look like an official page."
+  },
+  "capture_failed": {
+    "title": "The page could not be captured",
+    "explain": "The isolated browser could not load the page, so the visual and code checks had nothing to examine. This is a gap, not evidence."
+  },
+  "char_code_obfuscation": {
+    "title": "Code is hidden using character codes",
+    "explain": "The page builds text from numeric character codes, a common way to hide what the code does from people and scanners."
+  },
+  "cloaking_bot_filter": {
+    "title": "The site hides its content from scanners",
+    "explain": "The page served a filter that decides whether a visitor looks like a real target before showing anything. Phishing kits use this to hide from security tools."
+  },
+  "cloudflare_malware_warning": {
+    "title": "Cloudflare warns that this site spreads malware",
+    "explain": "Cloudflare served its \"Suspected Malware\" warning page in front of the site. That is strong supporting evidence from a third party that has seen reports about it, not proof: the verdict rests on the real page when the browser got past the warning, and is at most suspicious when it did not."
+  },
+  "cloudflare_phishing_interstitial": {
+    "title": "Cloudflare warns that this site is phishing",
+    "explain": "Cloudflare served its \"Suspected Phishing\" warning page in front of the site. That is strong supporting evidence from a third party that has seen reports about it, not proof: the verdict rests on the real page when the browser got past the warning, and is at most suspicious when it did not."
+  },
+  "cloudflare_phishing_warning": {
+    "title": "Cloudflare warns that this site is phishing or poses as a brand",
+    "explain": "Cloudflare served its \"Suspected Phishing\" or \"Suspected Misleading Website\" (reported for posing as a brand or service) warning page in front of the site. That is strong supporting evidence from a third party that has seen reports about it, not proof: the verdict rests on the real page when the browser got past the warning, and is at most suspicious when it did not."
+  },
+  "credential_form_off_domain": {
+    "title": "A login form sends passwords to a different site",
+    "explain": "A form with a password field submits to a domain other than the one shown in the address bar. Real login pages almost never do this."
+  },
+  "credential_prompt": {
+    "title": "The page asks for a password or other credentials",
+    "explain": "The page shows fields for a password, card number or similar secret. That matters most when the page also impersonates a brand or sends data off site."
+  },
+  "data_sent_off_domain": {
+    "title": "Sends data to another site",
+    "explain": "The page's code sends data to a domain other than its own. Many sites do this for analytics, so it matters most alongside other signals."
+  },
+  "devtools_evasion": {
+    "title": "Tries to stop people inspecting the page",
+    "explain": "The code repeatedly triggers the debugger to make the browser's developer tools unusable. Phishing kits do this to slow down analysts."
+  },
+  "discord_webhook_exfil": {
+    "title": "Sends data to a Discord webhook",
+    "explain": "The page's code posts data to a Discord webhook. Phishing kits use webhooks to deliver stolen credentials to the attacker."
+  },
+  "dns_transient_error": {
+    "title": "DNS lookup failed temporarily",
+    "explain": "The DNS resolver failed on this host twice, without answering that the name does not exist. This is a transient resolver error, not a sign that the site is down or phishing, so the page was not captured."
+  },
+  "download_response": {
+    "title": "The link starts a file download",
+    "explain": "Opening the link started a download instead of showing a page. The file was hashed and measured with one size-capped fetch and was never opened. An unexpected executable, archive or HTML attachment is a common way to deliver malware or a credential form."
+  },
+  "dynamic_dns_receiver": {
+    "title": "Sends data to a dynamic DNS or tunnel host",
+    "explain": "The page talks to a host on a dynamic DNS or tunnelling service (such as DuckDNS or ngrok), often on an unusual port. Legitimate sites rarely do this; attacker servers often do."
+  },
+  "established_domain_age": {
+    "title": "The domain has been registered for years",
+    "explain": "The domain is old. This lowers risk, although old domains can be compromised or resold."
+  },
+  "established_parent_domain": {
+    "title": "Hosted on a long-established domain",
+    "explain": "The registered domain has existed for a long time. This lowers risk, but compromised or shared hosting on old domains can still serve phishing."
+  },
+  "eval_or_function_constructor": {
+    "title": "Runs code built at runtime",
+    "explain": "The page turns text into code while it runs (eval or the Function constructor). This is often used to hide what a script does."
+  },
+  "free_hosting_abuse": {
+    "title": "Free hosting used to impersonate or deceive",
+    "explain": "The page uses a free hosting service in a way typical of phishing, such as a brand login page on a throwaway subdomain."
+  },
+  "free_hosting_pages_dev": {
+    "title": "Hosted on Cloudflare Pages (pages.dev)",
+    "explain": "The page is published on Cloudflare's free pages.dev hosting. Legitimate projects use it, and so do many phishing pages."
+  },
+  "free_hosting_platform": {
+    "title": "Hosted on a free website service",
+    "explain": "The page lives on a free hosting or site-builder service. Anyone can publish there in minutes, so it is popular for throwaway phishing pages."
+  },
+  "free_hosting_subdomain": {
+    "title": "Hosted on a free website service",
+    "explain": "The page lives on a subdomain of a free hosting or site-builder service. Anyone can publish there in minutes, so it is popular for throwaway phishing pages."
+  },
+  "free_hosting_with_brand": {
+    "title": "A brand name on a free hosting site",
+    "explain": "A known brand name appears on a page hosted on a free website service. Real brands rarely host login pages there."
+  },
+  "global_key_listener": {
+    "title": "Records every key pressed on the page",
+    "explain": "The page listens to all key presses, not just in one field. This can be used to capture what a visitor types."
+  },
+  "insecure_http_scheme": {
+    "title": "The page does not use HTTPS",
+    "explain": "The URL uses plain HTTP, so traffic is not encrypted. Most real login pages use HTTPS."
+  },
+  "ip_geolocation_lookup": {
+    "title": "Looks up the visitor's IP address and location",
+    "explain": "The page asks a public service for the visitor's IP address or location. Phishing kits do this to record or filter victims."
+  },
+  "js_only_credential_submit": {
+    "title": "A password form is submitted by script, not by the form",
+    "explain": "The password form has no real destination and is sent by JavaScript instead. This lets the page send the password anywhere without it showing in the form."
+  },
+  "key_listener_on_sensitive_input": {
+    "title": "Watches key presses in a password or card field",
+    "explain": "The page listens to what is typed into a sensitive field as it is typed. On its own this can be harmless (strength meters); with data sent off site it is a keylogger."
+  },
+  "long_encoded_blob": {
+    "title": "Contains a long encoded block of data",
+    "explain": "The page carries a large base64 or similar encoded string. Attackers use this to hide scripts or content from scanners."
+  },
+  "lure_tokens_in_host": {
+    "title": "Lure words in the host name",
+    "explain": "The host name contains words like login, verify, secure or update that are used to make a link look trustworthy."
+  },
+  "newly_registered_domain": {
+    "title": "Domain registered in the last 30 days",
+    "explain": "The domain is very new. Most phishing domains are used within days of registration, so a new domain raises risk when other signals agree."
+  },
+  "no_brand_claimed": {
+    "title": "The page does not claim to be a known brand",
+    "explain": "Nothing on the page presents it as a well-known company or service. Impersonation is unlikely."
+  },
+  "no_brand_or_lure_tokens": {
+    "title": "No brand names or lure words in the URL",
+    "explain": "The URL does not mention a known brand or words like login, verify or account. This lowers risk from the URL alone."
+  },
+  "no_code_evidence": {
+    "title": "The page's code shows nothing suspicious",
+    "explain": "The code analysis found no credential collection, data exfiltration or evasion. This lowers risk."
+  },
+  "no_exfiltration_sinks": {
+    "title": "The code sends no data anywhere",
+    "explain": "No requests that carry visitor data to another server were found in the page's code. This lowers risk."
+  },
+  "no_forms_or_sinks": {
+    "title": "No forms and nowhere to send data",
+    "explain": "The page has no forms and its code sends no data anywhere. It is unlikely to collect credentials directly."
+  },
+  "no_https": {
+    "title": "The page does not use HTTPS",
+    "explain": "The URL uses plain HTTP, so traffic is not encrypted. Most real login pages use HTTPS."
+  },
+  "opaque_query_parameter": {
+    "title": "The URL carries an unreadable tracking value",
+    "explain": "The URL has a long random or encoded parameter. Phishing links often carry one to track the victim or unlock the page only for them."
+  },
+  "page_not_found": {
+    "title": "The page returned 404 Not Found",
+    "explain": "The server answered but said the page does not exist. There is no content to judge, though a missing page can be served again later."
+  },
+  "platform_phishing_warning": {
+    "title": "The hosting provider warns that this site is phishing",
+    "explain": "The hosting or security provider in front of the site showed a phishing warning instead of the page. That is a strong verdict from a third party."
+  },
+  "redirect_cross_domain": {
+    "title": "Redirects to a different site",
+    "explain": "The link sends the visitor on to a different registered domain than the one submitted. Many legitimate links do this; it matters more when the start host is a free hosting service, a URL shortener or a new domain, because attackers use those to hide the real destination. A redirect inside one site (http to https, adding www.) does not count."
+  },
+  "redirect_to_free_hosting": {
+    "title": "Redirects onto a free host or URL shortener",
+    "explain": "A hop in the link's redirect chain lands on a free hosting service or a URL shortener. Attackers chain these throwaway addresses to hide where the visitor really ends up."
+  },
+  "site_unreachable": {
+    "title": "The site could not be reached",
+    "explain": "The browser could not connect to the site (DNS failure, refused connection or timeout). Nothing on the page could be checked."
+  },
+  "static_html_only": {
+    "title": "Only the raw HTML could be read",
+    "explain": "The browser could not load the page, so its raw HTML was read with a plain request instead. It was not rendered and its scripts were not run, so the code check is partial and the real page was not observed."
+  },
+  "suspicious_tld": {
+    "title": "Uses a top-level domain often abused for phishing",
+    "explain": "The domain ends in an extension that is cheap or rarely used by real businesses and is common in phishing campaigns."
+  },
+  "telegram_bot_exfil": {
+    "title": "Sends data to a Telegram bot",
+    "explain": "The page's code posts data to the Telegram bot API or a relay for it. Phishing kits commonly deliver stolen credentials to the attacker this way."
+  },
+  "tls_certificate_error": {
+    "title": "The HTTPS certificate is not valid",
+    "explain": "The site's certificate failed validation (self-signed, unknown issuer, wrong name or expired). The page was captured with certificate checks ignored for that capture only, so its content is not authenticated and never clears the site."
+  },
+  "tls_error": {
+    "title": "The site's HTTPS certificate or TLS setup is invalid",
+    "explain": "The site answered, but its certificate (expired, self-signed or issued for another name) or TLS setup was rejected, so the page could not be captured. The site is not down, and an invalid certificate alone is not evidence of phishing."
+  },
+  "tls_error_capture_gap": {
+    "title": "The site's HTTPS certificate or TLS setup is invalid",
+    "explain": "The same capture gap as tls_error, under a name a model made up: the site answered, but its certificate or TLS setup was rejected, so the page could not be captured. The site is not down, and an invalid certificate alone is not evidence of phishing."
+  },
+  "wallet_or_clipboard_hijack": {
+    "title": "Reads the clipboard or calls a crypto wallet",
+    "explain": "The page reads the visitor's clipboard or asks a crypto wallet to connect or sign. Drainer kits use this to steal funds or swap copied addresses."
+  },
+  "warning_bypass_blocked": {
+    "title": "The browser could not get past the provider warning",
+    "explain": "The browser tried once to proceed past the warning page, and was stopped, for example by a Cloudflare Turnstile check, which is never solved. The real page was not observed, so this is a capture gap and the verdict is at most suspicious."
+  },
+  "whois_not_found": {
+    "title": "No registration record was found for the domain",
+    "explain": "The domain registry returned no record. The domain may be very new, deleted or on a registry that hides its data."
+  },
+  "whois_reflects_platform_only": {
+    "title": "Registration details describe the hosting service only",
+    "explain": "The registration record belongs to the hosting platform, not to whoever published this page, so it says nothing about the page owner."
+  },
+  "whois_unavailable": {
+    "title": "Domain registration details were unavailable",
+    "explain": "The registration lookup did not return usable data, so the domain's age and owner are unknown. This is a gap, not evidence."
+  },
+  "www_sibling_capture": {
+    "title": "The same site without www. was captured instead",
+    "explain": "The certificate does not cover the www. name, so the same site without www. was captured instead. Visitors to this link see a certificate warning. That page is evidence about the same site operator, but the submitted page was not observed, so the verdict is at most suspicious."
+  }
+}

@@ -1,0 +1,8 @@
+# Signing only: SigV4 via botocore, credentials via the web Lambda's execution role.
+boto3==1.43.105
+# Production WSGI server. Threads rather than extra workers: requests are almost
+# entirely spent waiting on the upstream API, not on CPU.
+gunicorn==23.0.0
+# ID token verification. The crypto extra supplies RS256 support, which Cognito
+# uses to sign tokens.
+pyjwt[crypto]==2.15.1

@@ -1,0 +1,30 @@
+[project]
+name = "phish-infra"
+version = "2.0.0"
+requires-python = ">=3.13"
+dependencies = [
+  "aws-cdk-lib==2.271.0",
+  "constructs==10.8.1",
+  "cdk-nag==2.38.2",
+]
+
+[dependency-groups]
+# cfn-lint and checkov run as isolated, pinned uv tools from scripts/prepush.py. Keeping
+# them out of the workspace keeps checkov's exact pins (urllib3 1.26, asteval 1.0.5)
+# out of uv.lock.
+dev = [
+    "jsonschema==4.26.0",
+    "pytest==9.1.1",
+]
+
+[build-system]
+requires = ["hatchling==1.32.4"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["phish_infra"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# cdk.out holds staged asset copies (including other packages' tests) after a synth.
+norecursedirs = ["cdk.out", "build", ".venv", "__pycache__"]

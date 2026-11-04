@@ -1,0 +1,35 @@
+# Synth-time asset builds (infra/phish_infra/common.py BUILD_ROOT).
+/build
+
+# Python CDK app
+infra/cdk.out/
+cdk.out/
+# CDK context cache. Records real AWS account IDs from environment lookups
+# (for example availability-zones:account=<id>:region=<region>), so it must not
+# reach a public repository. It is regenerated on demand by cdk synth.
+cdk.context.json
+
+# Python and uv
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Node (web/ only). Match node_modules whether it is a directory or a symlink.
+node_modules
+*.tsbuildinfo
+
+# Evaluation run outputs: environment-specific and contain account identifiers.
+# Keep the directory, not the results.
+eval/results/*.json
+
+# End-to-end test inputs and reports: real URLs, timings and account identifiers.
+tests/e2e/data/
+tests/e2e/reports/
+
+# Local tool cache directories (uv, npm)
+.cache/
+
+# CDK deploy outputs: contain the account id and owner tag.
+outputs.json

@@ -1,0 +1,6 @@
+# The evaluation runs inside the uv workspace:
+#   uv run --package phish-agents python eval/evaluate_agents.py
+boto3==1.43.105
+pytest==9.1.1
+# pytest's pygments floor is 2.7.2; pin the uv.lock version so no older (ReDoS) release resolves.
+pygments==2.21.0
