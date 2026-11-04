@@ -80,7 +80,7 @@ Caveats: episodic memory was on, so these rescans saw earlier verdicts for the s
 
 ## Harness path design (default 2026-10-21 to 2026-11-02)
 
-The default from 2026-10-21 until the latency flags became the default on 2026-11-03 ([below](#latency-flags-on-by-default-2026-11-03)). `-c directOrchestration=false` brings back its Harness path; the other latency flags stay on unless you turn them off. It had orchestrator prompt caching added on 2026-10-24 and, on 2026-10-26, the brand-copy rule, code_analyst's capture budget with its raw HTML fallback and the 35 s page-specialist deadline (see [Accuracy rerun, 2026-10-26](#accuracy-rerun-2026-10-26)): one `dispatcher___analyze_all` call runs the three specialists at the same time, no Agent Registry lookup unless `-c agentRegistry=true`, orchestrator effort `medium`, verdict first.
+The default from 2026-10-21 until the latency flags became the default on 2026-11-03 ([below](#latency-flags-on-by-default-2026-11-03)). `-c directOrchestration=false` brings back its Harness path and turns `unanimousFastPath` and `directSpecialists` off with it; `localRdap`, `directTools`, `splitToolsRuntimes`, `latencyBudgets` and `codeTextBudget=half` stay on unless you turn them off. It had orchestrator prompt caching added on 2026-10-24 and, on 2026-10-26, the brand-copy rule, code_analyst's capture budget with its raw HTML fallback and the 35 s page-specialist deadline (see [Accuracy rerun, 2026-10-26](#accuracy-rerun-2026-10-26)): one `dispatcher___analyze_all` call runs the three specialists at the same time, no Agent Registry lookup unless `-c agentRegistry=true`, orchestrator effort `medium`, verdict first.
 
 | Measure (test account, `us-west-2`) | Value |
 | --- | --- |

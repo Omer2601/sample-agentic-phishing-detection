@@ -6,7 +6,7 @@ Answers the final question: is this URL phishing, and what should you do about i
 | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Runs on   | By default, no runtime of its own: the worker Lambda calls the model with the Amazon Bedrock Converse API. Harness path (`-c directOrchestration=false`): Amazon Bedrock AgentCore Harness (`phish_orchestrator`) |
 | Model     | `us.anthropic.claude-opus-5-5` (context flag `orchestratorModel`)                                                                                              |
-| Called by | The worker Lambda, twice per scan: the scan input with the three Findings, then `Write the full report now.` By default these are two Converse calls on one conversation; on the Harness path, two `InvokeHarness` calls on the same harness session |
+| Called by | The worker Lambda, up to twice per scan: the scan input with the three Findings, then `Write the full report now.` By default these are two Converse calls on one conversation; on the Harness path, two `InvokeHarness` calls on the same harness session |
 | Tools | None by default: the worker has already run the specialists and puts their Findings in the message. Harness path: one tool, AgentCore Gateway `phish-specialists`, which fronts several targets: [`dispatcher___analyze_all`](dispatcher.md) for round one, the three specialist tools `url-analyst___analyze`, `brand-visual___analyze`, `code-analyst___analyze` for the optional second round, and, only with `-c agentRegistry=true`, the `registry` target (search of AWS Agent Registry, part of Amazon Bedrock AgentCore) |
 | Prompt    | Default: [`backend/phish_backend/worker/orchestrator_direct.md`](../../backend/phish_backend/worker/orchestrator_direct.md). Harness path: [`agents/orchestrator/prompt.md`](../../agents/orchestrator/prompt.md) |
 | Memory | None. On the Harness path the harness has no managed memory, the two turns of a scan share one runtime session, and the worker passes `actorId` = the scan id. Similar past scans come from the app's own AgentCore Memory, read by the worker |
@@ -14,7 +14,7 @@ Answers the final question: is this URL phishing, and what should you do about i
 
 ## What it does
 
-Every model-backed scan ends here. The conversation has two turns: the verdict, then the report.
+Every model-backed scan ends here. The conversation has up to two turns: the verdict, then the report.
 
 **Default path.** The worker invokes the three specialists itself, at the same time as the pre-check, reads their Findings from S3, and sends them to the orchestrator model in one Converse call (turn 1). The model calls no tools and there is no second round. When all three specialists answer `legitimate` at confidence 80 or more and nothing else needs weighing, the worker skips turn 1 (the unanimous fast path, see [configuration.md](../configuration.md)). The report is a second Converse call on the same conversation (turn 2). The rules below for judging, the compact turn 1 JSON and the report are the same on both paths.
 
