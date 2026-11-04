@@ -298,7 +298,10 @@ async def test_analyze_offers_the_lookup_tool_when_configured():
     )
     names = [t.tool_name for t in factory.kwargs[0]["tools"]]
     assert names == ["capture_page", "lookup_official_domain"]
-    assert "paypal.com" in factory.tool_outputs[1]
+    assert (
+        "1. paypal.com | PayPal | https://www.paypal.com/ | "
+        in factory.tool_outputs[1].splitlines()
+    )
     assert fake.stopped
     assert finding.verdict == "phishing"
 

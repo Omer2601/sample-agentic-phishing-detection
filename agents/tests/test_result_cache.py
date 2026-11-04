@@ -301,6 +301,7 @@ def test_rdap_live_lookup_still_checks_every_redirect_hop(table, monkeypatch):
 # ── Web search ───────────────────────────────────────────────────────────────
 
 HIT = {"url": "https://www.paypal.com/", "title": "PayPal", "text": "Pay online"}
+HIT_LINE = "1. paypal.com | PayPal | https://www.paypal.com/ | Pay online"
 
 
 async def test_web_search_hit_skips_the_gateway(table):
@@ -309,7 +310,7 @@ async def test_web_search_hit_skips_the_gateway(table):
     second_fake = FakeMcp(result=search_payload())
     second = await make_search(second_fake).lookup("PayPal")
     assert len(fake.calls) == 1 and second_fake.calls == [] and not second_fake.started
-    assert first == second and "www.paypal.com" in second
+    assert first == second and HIT_LINE in second.splitlines()
     assert "websearch#paypal" in table.items
 
 
@@ -330,7 +331,7 @@ async def test_web_search_hit_does_not_use_lookup_budget_or_record_a_call(table)
     await make_search(FakeMcp(result=search_payload(HIT))).lookup("PayPal")
     search = make_search(FakeMcp(), max_lookups=1)
     for _ in range(3):
-        assert "paypal.com" in await search.lookup("PayPal")
+        assert HIT_LINE in (await search.lookup("PayPal")).splitlines()
     assert search.recorder.calls == []
 
 
@@ -365,7 +366,7 @@ async def test_web_search_dynamodb_error_fails_open(table):
     table.error = RuntimeError("down")
     fake = FakeMcp(result=search_payload(HIT))
     out = await make_search(fake).lookup("PayPal")
-    assert len(fake.calls) == 1 and "www.paypal.com" in out
+    assert len(fake.calls) == 1 and HIT_LINE in out.splitlines()
 
 
 async def test_web_search_unchanged_when_cache_is_off(off):

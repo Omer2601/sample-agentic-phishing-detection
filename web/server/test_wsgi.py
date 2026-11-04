@@ -877,7 +877,10 @@ def test_the_root_still_redirects_an_anonymous_caller_to_cognito(monkeypatch):
     start, cap = _capture()
     wsgi.application(_anonymous("/"), start)
     assert cap["status"].startswith("302")
-    assert "amazoncognito.com" in dict(cap["headers"])["Location"]
+    assert (
+        dict(cap["headers"])["Location"]
+        == "https://x.auth.us-west-2.amazoncognito.com/oauth2/authorize"
+    )
 
 
 def test_an_authenticated_spa_route_is_still_gated(monkeypatch):

