@@ -99,7 +99,8 @@ def test_gateway_role_trust_is_scoped_to_this_account_and_gateway(on):
     roles = [
         r
         for r in edge.find_resources("AWS::IAM::Role").values()
-        if "bedrock-agentcore.amazonaws.com" in json.dumps(r)
+        if [s["Principal"] for s in r["Properties"]["AssumeRolePolicyDocument"]["Statement"]]
+        == [{"Service": "bedrock-agentcore.amazonaws.com"}]
     ]
     [role] = roles
     [trust] = role["Properties"]["AssumeRolePolicyDocument"]["Statement"]

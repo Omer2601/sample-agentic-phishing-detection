@@ -100,7 +100,12 @@ def test_waf_logs_are_encrypted_with_a_rotating_cmk(t):
     (log_group,) = t.find_resources("AWS::Logs::LogGroup").values()
     assert "KmsKeyId" in log_group["Properties"]
     (key,) = t.find_resources("AWS::KMS::Key").values()
-    assert "logs.us-east-1.amazonaws.com" in str(key["Properties"]["KeyPolicy"])
+    services = [
+        s["Principal"]["Service"]
+        for s in key["Properties"]["KeyPolicy"]["Statement"]
+        if "Service" in s["Principal"]
+    ]
+    assert services == ["logs.us-east-1.amazonaws.com"]
     assert key["DeletionPolicy"] == "Delete"
 
 
