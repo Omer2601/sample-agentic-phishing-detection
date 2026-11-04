@@ -15,6 +15,8 @@
 
 [![Demo video: a legitimate scan, a phishing verdict with the specialists' evidence and screenshot, a CSV batch and an API call](docs/media/poster.png)](docs/media/demo.mp4)
 
+<!-- Inline demo video: the GitHub attachment URL goes on its own line here. -->
+
 Watch the [full demo with narration](docs/media/demo.mp4), or page through the [presentation](docs/presentation/agentic-phishing-detection.pdf).
 
 | Phishing verdict with evidence                                                                                                                                                          | Batch of URLs                                                                                                                                                              |
