@@ -23,16 +23,28 @@ Watch the [full demo with narration](docs/media/demo.mp4), or page through the [
 
 ## Measured results
 
-Measured on 2026-11-03 on a test stack in `us-west-2`: 448 URLs submitted at once (224 from a public phishing feed pulled that day, 224 legitimate sign-in, brand, SaaS, government and free-hosting pages), 407 live in both runs, episodic memory off, `scanConcurrency` 25. "Caught" means the verdict is phishing, or suspicious with risk 50 or more (the verdict a pre-publish gate holds for review).
+> **About 2x faster and a third cheaper per scan than the previous default, with the same accuracy.**
+> 407 live URLs, measured 2026-11-03.
 
-| Measure (407 live URLs: 188 phishing, 219 legitimate) | Current default        | Previous default   |
-| ----------------------------------------------------- | ---------------------- | ------------------ |
-| Phishing caught (recall)                              | **0.883** (166 of 188) | 0.867 (163 of 188) |
-| False positive rate                                   | **0.046** (10 of 219)  | 0.050 (11 of 219)  |
-| Scan time, median / p90 (worker start to verdict)     | **18.6 s / 31.2 s**    | 37.8 s / 71.9 s    |
-| Model cost per scan, mean                             | **$0.090**             | $0.134             |
+| Measure                    | Current default        | Previous default   | Change                      |
+| -------------------------- | ---------------------- | ------------------ | --------------------------- |
+| Phishing caught (recall)   | **88.3%** (166 of 188) | 86.7% (163 of 188) | Same, within run-to-run noise |
+| False positive rate        | **4.6%** (10 of 219)   | 5.0% (11 of 219)   | Same, within run-to-run noise |
+| Median scan time           | **18.6 s**             | 37.8 s             | 51% faster                  |
+| p90 scan time              | **31.2 s**             | 71.9 s             | 57% faster                  |
+| Model cost per scan (mean) | **$0.090**             | $0.134             | 33% lower                   |
 
-Accuracy differences of 3 to 4 URLs between the two runs are within run-to-run variation on live sites. Method, the full history and limitations: [docs/evaluation.md](docs/evaluation.md). The labelled set is private (live phishing URLs are not committed), so you reproduce the method with your own labelled URLs.
+<details>
+<summary><b>How this was measured</b></summary>
+
+- **Where:** a test stack in `us-west-2`, episodic memory off, `scanConcurrency` 25.
+- **URLs:** 448 submitted at once. 224 came from a public phishing feed pulled that day and 224 are legitimate sign-in, brand, SaaS, government and free-hosting pages. 407 were live in both runs: 188 phishing and 219 legitimate.
+- **Caught** means the verdict is phishing, or suspicious with risk 50 or more (what a pre-publish gate holds for review).
+- **Scan time** runs from worker start to verdict.
+- **Noise:** differences of 3 to 4 URLs between the two runs are within run-to-run variation on live sites.
+- **Reproduce it:** the labelled set is private, because live phishing URLs are not committed. Run the method with your own labelled URLs. Method, full history and limitations: [docs/evaluation.md](docs/evaluation.md).
+
+</details>
 
 ## What it does
 
