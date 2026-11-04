@@ -2,7 +2,7 @@
 
 You can measure how well each agent, and the whole team, labels a set of URLs you already know the answer to. This page also keeps the measured latency and cost of the current design and of every earlier design, so the README can stay short.
 
-**On this page:** [Run it](#run-it) · [The dataset](#the-dataset) · [Metrics](#metrics) · [Accuracy on live phishing](#accuracy-on-live-phishing-2026-10-16) · [Accuracy rerun, 2026-10-21](#accuracy-rerun-2026-10-21) · [Current design](#current-design) · [Prompt caching rerun](#prompt-caching-rerun-2026-10-25) · [Accuracy rerun, 2026-10-26](#accuracy-rerun-2026-10-26) · [Accuracy rerun, 2026-10-27](#accuracy-rerun-2026-10-27) · [Each latency flag on its own](#each-latency-flag-on-its-own-2026-11-03) · [Latency history](#latency-history) · [Cost history](#cost-history) · [Limitations](#limitations)
+**On this page:** [Run it](#run-it) · [The dataset](#the-dataset) · [Metrics](#metrics) · [Accuracy on live phishing](#accuracy-on-live-phishing-2026-10-16) · [Accuracy rerun, 2026-10-21](#accuracy-rerun-2026-10-21) · [Harness path design](#harness-path-design-default-2026-10-21-to-2026-11-02) · [Prompt caching rerun](#prompt-caching-rerun-2026-10-25) · [Accuracy rerun, 2026-10-26](#accuracy-rerun-2026-10-26) · [Accuracy rerun, 2026-10-27](#accuracy-rerun-2026-10-27) · [Each latency flag on its own](#each-latency-flag-on-its-own-2026-11-03) · [Latency history](#latency-history) · [Cost history](#cost-history) · [Limitations](#limitations)
 
 > [!WARNING]
 > Every URL is a paid call to Amazon Bedrock and AgentCore, and each one opens real web pages. Start with `--limit 5`. A full run of the committed sample can take 20 minutes or more: the script calls each of the 4 agents for each of the 21 URLs one at a time (84 calls), and one call takes about 6 to 35 s.
@@ -78,9 +78,9 @@ Click-through on Cloudflare warnings: in a browser-only screen (no model) of pag
 
 Caveats: episodic memory was on, so these rescans saw earlier verdicts for the same URLs, as on 2026-10-16. The scan record keeps only the verdict after the rule, so the 16 is inferred by comparing with the 2026-10-16 verdicts; a later fix will also record the verdict before the rule so the effect can be measured directly. The run cost $18.71 in tokens, a median of $0.205 per model-backed URL.
 
-## Current design
+## Harness path design (default 2026-10-21 to 2026-11-02)
 
-The default since 2026-10-21, with orchestrator prompt caching added on 2026-10-24 and, on 2026-10-26, the brand-copy rule, code_analyst's capture budget with its raw HTML fallback and the 35 s page-specialist deadline (see [Accuracy rerun, 2026-10-26](#accuracy-rerun-2026-10-26)): one `dispatcher___analyze_all` call runs the three specialists at the same time, no Agent Registry lookup unless `-c agentRegistry=true`, orchestrator effort `medium`, verdict first.
+The default from 2026-10-21 until the latency flags became the default on 2026-11-03 ([below](#latency-flags-on-by-default-2026-11-03)). `-c directOrchestration=false` brings back its Harness path; the other latency flags stay on unless you turn them off. It had orchestrator prompt caching added on 2026-10-24 and, on 2026-10-26, the brand-copy rule, code_analyst's capture budget with its raw HTML fallback and the 35 s page-specialist deadline (see [Accuracy rerun, 2026-10-26](#accuracy-rerun-2026-10-26)): one `dispatcher___analyze_all` call runs the three specialists at the same time, no Agent Registry lookup unless `-c agentRegistry=true`, orchestrator effort `medium`, verdict first.
 
 | Measure (test account, `us-west-2`) | Value |
 | --- | --- |
@@ -211,7 +211,7 @@ The remaining latency flags (`directOrchestration`, `localRdap`, `unanimousFastP
 
 ## Each latency flag on its own, 2026-11-03
 
-To see which of the eight latency flags matters, each one was turned off on its own (leave one out) on one test stack in a test account (`us-west-2`), with episodic memory off and `scanConcurrency` 25. Every arm scanned the same 110 URLs (60 phishing from a public feed, 50 legitimate), one arm after another over about five and a half hours; 8 phishing URLs were dead in every arm and are left out. The all-on default ran first and last to measure run-to-run noise. Caught is scored as above.
+To see which of the eight latency flags matters, each one was turned off on its own (leave one out) on one test stack in a test account (`us-west-2`), with episodic memory off and `scanConcurrency` 25. Every arm scanned the same 110 URLs (60 phishing from a public feed, 50 legitimate), one arm after another over about five and a half hours; 8 phishing URLs were dead in every arm but one and are left out (7 were dead in the `directSpecialists` off arm, so it scores 53 phishing URLs). The all-on default ran first and last to measure run-to-run noise. Caught is scored as above.
 
 | Arm | Caught | False positives | Scan time, median / p90 | Model cost per scan, mean |
 | --- | --- | --- | --- | --- |
@@ -230,7 +230,7 @@ To see which of the eight latency flags matters, each one was turned off on its 
 - **Noise band.** The two all-on runs differ by about 3 s at the median, so smaller differences are inside the noise, and one URL of recall is too.
 - **`directOrchestration` is the only flag with a clear effect.** Turning it off added about 8 to 11 s at the median and about 30 s at p90, and cost about 47% more per scan. Most of the gap between all on and all off is this flag. It is also the only flag that moved cost.
 - **The other flags were not measurably faster or cheaper on their own.** `directTools` showed a small signal (about 4 s slower median on phishing scans with it off) that one run cannot confirm. `unanimousFastPath`, `localRdap`, `directSpecialists`, `splitToolsRuntimes`, `latencyBudgets` and `codeTextBudget` are inside the noise; three arms that ran in the same hour were faster than all on, which points to time of day, not to the flags.
-- **No flag measurably hurt accuracy**: 46 or 47 of 52 caught and the same 2 of 50 false positives in every arm.
+- **No flag measurably hurt accuracy**: 46 or 47 caught phishing URLs (of 52, or of 53 in the `directSpecialists` off arm) and the same 2 of 50 false positives in every arm.
 - **Reliability.** With `directSpecialists` off, 2 of 110 scans had all three specialist findings fail (verdict unknown); no other arm had this. With `directTools` off, 1 scan was unknown because the target site rate-limited the capture.
 
 ## Latency history
@@ -244,7 +244,8 @@ Each design below was measured on a test stack in `us-west-2` with Claude Opus 5
 | Earlier dispatcher | A dispatcher ran the three in parallel, effort `low` | 2026-10-05 |
 | Revised dispatcher | Same, after later prompt and pipeline changes | 2026-10-11 |
 | No dispatcher (default 2026-10-16 to 2026-10-21) | Registry lookup, then three specialist tools one after another, effort `medium` | 2026-10-16, 2026-10-18 |
-| **Current: dispatcher, no registry** | One dispatcher call, three in parallel, effort `medium` | 2026-10-21 |
+| Harness path: dispatcher, no registry (default 2026-10-21 to 2026-11-02) | One dispatcher call, three in parallel, effort `medium` | 2026-10-21 |
+| **Current: direct orchestration (latency flags on, default since 2026-11-03)** | The worker invokes the three specialists in parallel, then one Converse call for the verdict | [2026-11-03](#latency-flags-on-by-default-2026-11-03) |
 
 <details>
 <summary>Why the dispatcher came back (2026-10-16 spike)</summary>
@@ -395,7 +396,9 @@ Token cost only, as recorded on each scan (`cost_usd`).
 | No dispatcher | 50-URL API batch, 2026-10-18 | $15.62 | $0.312 |
 | Dispatcher, no registry | 50-URL API batch, 2026-10-21 | $10.34 | $0.220 |
 | Dispatcher, orchestrator prompt caching | 50-URL API batch, 2026-10-25 (same URLs) | $6.56 | $0.153 |
-| Current: dispatcher, orchestrator prompt caching, 2026-10-26 rules | 317-URL accuracy set, 2026-10-26 | $45.77 | $0.157 (291 model-backed scans) |
+| Harness path: dispatcher, orchestrator prompt caching, 2026-10-26 rules (default 2026-10-21 to 2026-11-02) | 317-URL accuracy set, 2026-10-26 | $45.77 | $0.157 (291 model-backed scans) |
+| Four flags on, including direct orchestration (A/B arm) | 448-URL A/B, 2026-11-02 ([details](#capture-compact-view-and-latency-flags-2026-11-02)) | Not totalled here | $0.092 mean (409 live URLs) |
+| Current: latency flags on (default since 2026-11-03) | 448-URL A/B, 2026-11-03 ([details](#latency-flags-on-by-default-2026-11-03)) | Not totalled here | $0.090 mean (407 live URLs) |
 
 > [!NOTE]
 > Runs before 2026-10-16 counted specialist prompt-cache reads and writes as zero (fixed on 2026-10-16), so they leave out most specialist input tokens: on a test stack the same 200-URL batch recorded about $0.25 per URL once they were counted. Runs before 2026-10-21 priced cache reads at 0.1 times the input price; the current `pricing.json` uses the published 0.05 times.
