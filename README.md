@@ -13,9 +13,9 @@
 
 ## Demo
 
-[![Demo video: a legitimate scan, a phishing verdict with the specialists' evidence and screenshot, a CSV batch and an API call](docs/media/poster.png)](docs/media/demo.mp4)
+[![Animated preview, 25 seconds, no sound, footage sped up: a reported parcel-delivery link is scanned, the live stages run, and the result shows Phishing, risk 95, recommended action Block, with the orchestrator report and the specialists' evidence](docs/media/teaser.gif)](docs/media/demo.mp4)
 
-Watch the [full demo with narration](docs/media/demo.mp4), or page through the [presentation](docs/presentation/agentic-phishing-detection.pdf).
+The preview above is a silent 25-second excerpt. Watch the [full 4-minute demo with narration](docs/media/demo.mp4), or page through the [presentation](docs/presentation/agentic-phishing-detection.pdf).
 
 | Phishing verdict with evidence                                                                                                                                                          | Batch of URLs                                                                                                                                                              |
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

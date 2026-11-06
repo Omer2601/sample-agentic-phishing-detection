@@ -21,3 +21,13 @@ Script of `demo.mp4` (about 4 minutes 0 seconds, 1920x1080, 30 fps). Narration i
 - "About twenty seconds" in the title: the README headline, consistent with the 2026-11-03 latency flag runs (all flags on, p50 20.1 and 23.4 s, $0.089 to $0.092 per scan).
 - directOrchestration footnote: README and docs/evaluation.md (each latency flag on its own, 2026-11-03): off adds about 8 to 11 s at the median; it is the only latency flag with a clear measured effect.
 - Deploy time (about 8 minutes) and idle cost (about $14 to $15 a month): README.
+
+## README preview
+
+`teaser.gif` is scene 3 and the first 28 s of scene 4 (0:54.4 to 1:44.4) at 2x the video's speed (the video's own 1.5x and 4x badges stay visible), 6 fps, 800 px wide, no audio. Rebuild it from `demo.mp4`:
+
+```bash
+ffmpeg -ss 54.4 -t 50 -i docs/media/demo.mp4 -an \
+  -vf "setpts=PTS/2,fps=6,scale=800:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=96:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle" \
+  -loop 0 docs/media/teaser.gif
+```
