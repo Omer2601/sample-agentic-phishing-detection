@@ -4,7 +4,7 @@
 
 import re
 import shutil
-import subprocess
+import subprocess  # nosec B404: test runs a fixed uv argv, no shell
 from pathlib import Path
 
 import pytest
@@ -38,7 +38,7 @@ def test_export_works_from_only_the_files_the_dockerfile_copies(tmp_path):
     cmd[cmd.index("-o") + 1] = "req.txt"
     assert cmd[:2] == ["uv", "export"]
     # The program is the literal "uv"; only the Dockerfile's export arguments vary. No shell.
-    subprocess.run(["uv", *cmd[1:]], cwd=tmp_path, check=True, capture_output=True)  # noqa: S603, S607  # nosec B603: fixed argv, literal program, no shell, no untrusted input
+    subprocess.run(["uv", *cmd[1:]], cwd=tmp_path, check=True, capture_output=True)  # noqa: S603, S607  # nosec B603 B607: fixed argv, literal program resolved from PATH on purpose, no shell, no untrusted input
     req = (tmp_path / "req.txt").read_text()
     assert "strands-agents==1.63.0" in req and "--hash=sha256:" in req
     assert "-e ./" not in req

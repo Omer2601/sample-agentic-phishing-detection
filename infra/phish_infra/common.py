@@ -138,9 +138,9 @@ def run_build_step(cmd: list[str], cwd: Path = REPO_ROOT) -> None:
     try:
         match program:
             case "uv":
-                subprocess.run(["uv", *args], cwd=cwd, check=True)  # noqa: S603, S607  # nosec B603: fixed argv, literal program, no shell, no untrusted input
+                subprocess.run(["uv", *args], cwd=cwd, check=True)  # noqa: S603, S607  # nosec B603 B607: fixed argv, literal program resolved from PATH on purpose, no shell, no untrusted input
             case "npm":
-                subprocess.run(["npm", *args], cwd=cwd, check=True)  # noqa: S603, S607  # nosec B603: fixed argv, literal program, no shell, no untrusted input
+                subprocess.run(["npm", *args], cwd=cwd, check=True)  # noqa: S603, S607  # nosec B603 B607: fixed argv, literal program resolved from PATH on purpose, no shell, no untrusted input
             case _:
                 raise RuntimeError(f"Asset build: {program} is not an allowed build tool")
     except (OSError, subprocess.CalledProcessError) as exc:

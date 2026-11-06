@@ -148,7 +148,7 @@ def test_injected_client_is_used(monkeypatch):
 
 
 def test_logs_hit_and_miss_with_key_type_only(table, caplog):
-    cache.put("websearch#paypal", {"secret": "value-should-not-be-logged"}, 60)
+    cache.put("websearch#paypal", {"payload": "value-should-not-be-logged"}, 60)
     with caplog.at_level(logging.INFO, logger=cache.logger.name):
         cache.get("websearch#paypal")
         cache.get("websearch#other")

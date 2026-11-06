@@ -37,6 +37,8 @@ _SLEEP_BUDGET_SECONDS = 60.0
 _MARGIN_SECONDS = 15.0
 _RESERVE_SECONDS = HARNESS_READ_TIMEOUT_SECONDS + _MARGIN_SECONDS
 _SESSION_UNSAFE = re.compile(r"[^A-Za-z0-9-]")
+# Retry jitter only; SystemRandom keeps it off the predictable module-level generator.
+_JITTER = random.SystemRandom()
 
 _lambda_context = None
 
@@ -114,8 +116,8 @@ def invoke_with_throttle_retry[T](
             if budget <= 0:
                 logger.warning("%s throttled on attempt %d; sleep budget spent", what, attempt)
                 break
-            # Full jitter; jitter needs no cryptographic randomness.
-            delay = hinted if hinted is not None else random.uniform(0.0, window)  # noqa: S311
+            # Full jitter.
+            delay = hinted if hinted is not None else _JITTER.uniform(0.0, window)
             delay = min(delay, budget, headroom)
             budget -= delay
             logger.warning(

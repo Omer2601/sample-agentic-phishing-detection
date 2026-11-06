@@ -11,7 +11,7 @@ import argparse
 import logging
 import os
 import stat
-import subprocess
+import subprocess  # nosec B404: fixed argv lists, no shell, used only to run the gate's tools
 import sys
 from pathlib import Path
 
@@ -82,13 +82,13 @@ def execute(
     opts = {"cwd": cwd, "check": check, "capture_output": capture, "env": _clean_env()}
     match program:
         case "git":
-            return subprocess.run(["git", *args], **opts)  # nosec B603: fixed argv, literal program, no shell, no untrusted input
+            return subprocess.run(["git", *args], **opts)  # nosec B603 B607: fixed argv, literal program resolved from PATH on purpose, no shell, no untrusted input
         case "uv":
-            return subprocess.run(["uv", *args], **opts)  # nosec B603: fixed argv, literal program, no shell, no untrusted input
+            return subprocess.run(["uv", *args], **opts)  # nosec B603 B607: fixed argv, literal program resolved from PATH on purpose, no shell, no untrusted input
         case "npx":
-            return subprocess.run(["npx", *args], **opts)  # nosec B603: fixed argv, literal program, no shell, no untrusted input
+            return subprocess.run(["npx", *args], **opts)  # nosec B603 B607: fixed argv, literal program resolved from PATH on purpose, no shell, no untrusted input
         case "npm":
-            return subprocess.run(["npm", *args], **opts)  # nosec B603: fixed argv, literal program, no shell, no untrusted input
+            return subprocess.run(["npm", *args], **opts)  # nosec B603 B607: fixed argv, literal program resolved from PATH on purpose, no shell, no untrusted input
     raise GateError(f"{program} is not a program the gate runs")
 
 

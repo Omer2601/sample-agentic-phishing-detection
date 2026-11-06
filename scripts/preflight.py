@@ -15,7 +15,7 @@ import argparse
 import logging
 import re
 import shutil
-import subprocess
+import subprocess  # nosec B404: fixed argv lists, no shell, used only to read tool versions
 import sys
 from dataclasses import dataclass
 
@@ -40,7 +40,7 @@ def node_version() -> str:
         # Resolved from PATH on purpose: the operator's node is what the CDK CLI will use,
         # and its version is only available from the binary itself (no Python API). Fixed
         # argv, no shell, no input.
-        return subprocess.run(  # noqa: S603  # nosec B603: fixed argv, literal program, no shell, no untrusted input
+        return subprocess.run(  # noqa: S603  # nosec B603 B607: fixed argv, literal program resolved from PATH on purpose, no shell, no untrusted input
             ["node", "--version"],  # noqa: S607
             check=True,
             capture_output=True,

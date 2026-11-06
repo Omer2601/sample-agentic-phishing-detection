@@ -606,7 +606,8 @@ class AgentsLayer(Construct):
     def _specialist(
         self, name: str, cfg: AppConfig, key: kms.IKey, artifacts_bucket: s3.IBucket
     ) -> agentcore.Runtime:
-        assert self.tools_gateway is not None
+        if self.tools_gateway is None:
+            raise RuntimeError("tools Gateway must be built before the specialist Runtimes")
         environment = {
             "ARTIFACTS_BUCKET": artifacts_bucket.bucket_name,
             "MODEL_ID": cfg.specialist_model,
@@ -848,7 +849,8 @@ class AgentsLayer(Construct):
         record can only name tools; the orchestrator can still call only this Gateway's targets.
         """
         self._registry_and_outputs(cfg)
-        assert self.registry is not None
+        if self.registry is None:
+            raise RuntimeError("agent registry was not created")
         self.registry.grant_discovery(gateway_role)
         target = gateway.add_mcp_server_target(
             "RegistryTarget",
