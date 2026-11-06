@@ -29,7 +29,7 @@ The Python example below does the same with `boto3` and `SigV4Auth`. An unsigned
   ```
 
 - An IAM principal allowed `execute-api:Invoke` on the API. The stack creates a managed policy for this: attach the `ApiInvokePolicyArn` output to your role or user. See [security.md](security.md).
-- `awscurl` for the shell examples: `uv tool install awscurl==0.44`.
+- `awscurl` for the shell examples: `uv tool install awscurl==0.45`.
 
 Every example runs in your own account. Set `AWS_REGION` to the Region you deployed to.
 
@@ -153,7 +153,7 @@ Each `usage` object counts every prompt token in `input_tokens`, cached or not; 
 
 How to read it:
 
-- Poll `GET /scans/{id}` until `status` is `COMPLETE`, show the verdict, then keep polling while `report_status` is `PENDING`. How long the report takes after the verdict: in a 50-URL batch on 2026-10-21 it was about 11 s at the median (p50 42.5 s to the verdict, 53.8 s to the report, once the scan was picked up); earlier designs are in [evaluation.md](evaluation.md#latency-history). An HTTP 404 or site-down answer has its report immediately.
+- Poll `GET /scans/{id}` until `status` is `COMPLETE`, show the verdict, then keep polling while `report_status` is `PENDING`. How long the report takes after the verdict: on the Harness path, in a 50-URL batch on 2026-10-21, it was about 11 s at the median (p50 42.5 s to the verdict, 53.8 s to the report, once the scan was picked up); the report was not timed on its own on the current default, and earlier designs are in [evaluation.md](evaluation.md#latency-history). An HTTP 404 or site-down answer has its report immediately.
 - A report that is `FAILED` never changes the verdict. `POST /scans/{id}/retry` still accepts only scans whose `status` is `FAILED`, so a COMPLETE scan with a FAILED report is not re-run by it; submit the URL again if you need the report. Retrying a FAILED scan is unchanged.
 - A scan stored before this behaviour has no `report_status` and reads as `READY`.
 - The HTML report (`GET /scans/{id}/report`) works as soon as the scan is `COMPLETE`. While the report is `PENDING` it shows the verdict and findings with a "full report is still being written" notice; if it is `FAILED` it shows a failure notice instead. The human-review banner is present in every case.
@@ -161,12 +161,12 @@ How to read it:
 
 ### HTTP 404 and site-down fast paths
 
-Before any model runs, the worker calls `precheck_url` on the tools server, which opens the URL once in AgentCore Browser (navigation only, no screenshot). When the browser refuses the URL, cannot reach it or times out, the tool follows up with one plain HTTP probe (GET, up to 5 redirects, nothing executed). The worker waits at most 22 seconds for the answer.
+The worker calls `precheck_url` on the tools server, which opens the URL once in AgentCore Browser (navigation only, no screenshot). By default the three specialists start at the same time as the pre-check. On the Harness path (`-c directOrchestration=false`) the pre-check runs first, before any model. When the browser refuses the URL, cannot reach it or times out, the tool follows up with one plain HTTP probe (GET, up to 5 redirects, nothing executed). The worker waits at most 22 seconds for the answer.
 
-- If the page answers HTTP 404 the scan finishes at once with no model call: `verdict.verdict` is `error_404`, `risk_score` 10, `confidence` `high`, `action` `allow`, a one-sentence `summary`, and a short fixed `report_markdown` stating the page returned HTTP 404.
+- If the page answers HTTP 404 the scan finishes at once with no orchestrator call: `verdict.verdict` is `error_404`, `risk_score` 10, `confidence` `high`, `action` `allow`, a one-sentence `summary`, and a short fixed `report_markdown` stating the page returned HTTP 404.
 - If the site is down (DNS failure, connection refused or reset, HTTP 410, or a redirect to a host that does not resolve) the scan finishes the same way with `verdict.verdict` `site_down` (shown as "Site down"), `risk_score` 10, `confidence` `high`, `action` `allow`, and a fixed `report_markdown` that lists the addresses tried (defanged, in order) and the reason the probe gave.
 
-In both cases `report_status` is `READY` immediately, `report_markdown` carries the bold human-review disclaimer at both ends, `findings` is empty, `cost_usd` is `0`, and `calls` holds one `browser` entry named `precheck`. Every other outcome (page reachable, unreachable, blocked, or a precheck that failed or timed out) runs the normal analysis; a precheck problem never fails a scan. The worker calls the tools runtime directly for the pre-check; every deployment has it, and the fast paths are skipped only if `TOOLS_RUNTIME_ARN` is not set on the worker. `site_down` counts in batch `verdict_counts`, the `/stats` totals and daily series, and the CSV export like any other verdict.
+In both cases `report_status` is `READY` immediately, `report_markdown` carries the bold human-review disclaimer at both ends, `findings` is empty, `cost_usd` is `0`, and `calls` holds one `browser` entry named `precheck`. On the default path the specialists that already started still finish and their tokens are billed to your account, but the worker never reads their Findings and `cost_usd` does not include them. On the Harness path no specialist runs. Every other outcome (page reachable, unreachable, blocked, or a precheck that failed or timed out) runs the normal analysis; a precheck problem never fails a scan. The worker calls the tools runtime directly for the pre-check; every deployment has it, and the fast paths are skipped only if `TOOLS_RUNTIME_ARN` is not set on the worker. `site_down` counts in batch `verdict_counts`, the `/stats` totals and daily series, and the CSV export like any other verdict.
 
 ### Signals, capture notes and code insights
 
@@ -333,7 +333,7 @@ Each call renders the report from the stored records, writes it to the artifacts
 | `404`  | No such scan or batch, or it belongs to someone else.                                                                                     |
 | `409`  | You retried a scan that is not FAILED, asked for the report of a scan that is not COMPLETE, or sent an `Idempotency-Key` whose first request is still being processed (honor `Retry-After`). |
 | `422`  | The `Idempotency-Key` was already used with a different `url`.                                                                            |
-| `501`  | `Idempotency-Key` sent to a deployment without the idempotency table. Retry without the header.                                           |
+| `501`  | `Idempotency-Key` sent to a custom deployment without the idempotency table. The stack in this repository always creates the table, so a default deploy never answers `501`. Retry without the header. |
 | `429`  | Throttled. The request did not run. Retry with exponential backoff and jitter, and honor `Retry-After` if it is present.                 |
 | `503`  | A new scan or a retry could not be queued, or the live feed is unavailable. Try again later (with the same `Idempotency-Key`, if you sent one). |
 
