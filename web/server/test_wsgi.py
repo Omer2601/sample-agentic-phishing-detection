@@ -20,7 +20,9 @@ import re
 import secrets
 import sys
 import types
+import urllib.error
 import urllib.parse
+import urllib.request
 from unittest import mock
 
 import pytest
@@ -413,7 +415,7 @@ def test_verified_sub_is_signed_into_request(monkeypatch):
         sent["headers"] = req.headers
         return _Resp()
 
-    monkeypatch.setattr(wsgi.urllib.request, "urlopen", _fake_urlopen)
+    monkeypatch.setattr(wsgi._HTTPS_OPENER, "open", _fake_urlopen)
     start, cap = _capture()
     environ = {
         "PATH_INFO": "/api/scan",
@@ -932,8 +934,8 @@ def test_no_sub_means_no_identity_header(monkeypatch):
             return False
 
     monkeypatch.setattr(
-        wsgi.urllib.request,
-        "urlopen",
+        wsgi._HTTPS_OPENER,
+        "open",
         lambda req, timeout=None: sent.update(headers=req.headers) or _Resp(),
     )
     start, cap = _capture()
@@ -1114,7 +1116,7 @@ def test_csv_export_keeps_its_content_type_and_filename(monkeypatch):
         def __exit__(self, *a):
             return False
 
-    monkeypatch.setattr(wsgi.urllib.request, "urlopen", lambda req, timeout=None: _Resp())
+    monkeypatch.setattr(wsgi._HTTPS_OPENER, "open", lambda req, timeout=None: _Resp())
     start, cap = _capture()
     wsgi._proxy(
         {
@@ -1147,7 +1149,7 @@ def test_unexpected_upstream_content_type_is_forced_to_json(monkeypatch):
         def __exit__(self, *a):
             return False
 
-    monkeypatch.setattr(wsgi.urllib.request, "urlopen", lambda req, timeout=None: _Resp())
+    monkeypatch.setattr(wsgi._HTTPS_OPENER, "open", lambda req, timeout=None: _Resp())
     start, cap = _capture()
     wsgi._proxy(
         {
@@ -1375,3 +1377,34 @@ def test_config_loader_treats_invalid_optional_parameters_as_absent(monkeypatch)
     cfg = auth.config()
     assert cfg["invite_secret_arn"] == ""
     assert auth.sign_up_mode(cfg) == "app"
+
+
+NON_HTTPS_URLS = [
+    "file:///etc/passwd",
+    "ftp://example.com/prod",
+    "http://example.com/prod",
+]
+
+
+@pytest.mark.parametrize("module", [wsgi, auth], ids=["wsgi", "auth"])
+@pytest.mark.parametrize("url", NON_HTTPS_URLS)
+def test_outbound_calls_refuse_non_https_urls(module, url):
+    """Both outbound call sites (API proxy and token exchange) are https-only, twice:
+    _require_https refuses the URL, and the opener has no handler that could open it."""
+    with pytest.raises(ValueError, match="refusing non-https scheme"):
+        module._require_https(url)
+    with pytest.raises(urllib.error.URLError, match="unknown url type"):
+        module._HTTPS_OPENER.open(urllib.request.Request(url), timeout=1)  # noqa: S310
+
+
+def test_proxy_refuses_a_non_https_upstream(monkeypatch):
+    monkeypatch.setattr(wsgi, "API_BASE_URL", "http://api.example.com/prod")
+    start, _cap = _capture()
+    environ = {
+        "PATH_INFO": "/api/health",
+        "REQUEST_METHOD": "GET",
+        "QUERY_STRING": "",
+        "wsgi.input": io.BytesIO(b""),
+    }
+    with pytest.raises(ValueError, match="refusing non-https scheme"):
+        wsgi._proxy(environ, start, "sub-1")

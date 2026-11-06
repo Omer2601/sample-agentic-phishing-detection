@@ -12,8 +12,11 @@ from __future__ import annotations
 
 import json
 import time
+import urllib.error
+import urllib.request
 from unittest.mock import MagicMock, patch
 
+import pytest
 from botocore.exceptions import ClientError
 
 from phish_backend.api import feed
@@ -236,3 +239,22 @@ class TestResolveTimeout:
             patch.object(feed.socket, "getaddrinfo", side_effect=slow),
         ):
             assert feed._resolves("https://slow.example/") is False
+
+
+NON_HTTPS_URLS = [
+    "file:///etc/passwd",
+    "ftp://example.com/feed.txt",
+    "http://example.com/feed.txt",
+]
+
+
+class TestHttpsOnly:
+    @pytest.mark.parametrize("url", NON_HTTPS_URLS)
+    def test_fetch_refuses_non_https_url(self, url):
+        with pytest.raises(ValueError, match="refusing non-https scheme"):
+            feed._http_get(url)
+
+    @pytest.mark.parametrize("url", NON_HTTPS_URLS)
+    def test_opener_has_no_handler_for_non_https_schemes(self, url):
+        with pytest.raises(urllib.error.URLError, match="unknown url type"):
+            feed._HTTPS_OPENER.open(urllib.request.Request(url), timeout=1)  # noqa: S310

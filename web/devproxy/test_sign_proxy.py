@@ -12,6 +12,8 @@ query strings) intact.
 from __future__ import annotations
 
 import sys
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 import pytest
@@ -116,3 +118,22 @@ class TestResponseHeaders:
             ("Content-Type", "application/json"),
             ("Content-Length", "0"),
         ]
+
+
+NON_HTTPS_URLS = [
+    "file:///etc/passwd",
+    "ftp://example.com/api",
+    "http://example.com/api",
+]
+
+
+class TestHttpsOnly:
+    @pytest.mark.parametrize("url", NON_HTTPS_URLS)
+    def test_upstream_check_refuses_non_https_url(self, url: str) -> None:
+        with pytest.raises(ValueError, match="refusing non-https scheme"):
+            sign_proxy._require_https(url)
+
+    @pytest.mark.parametrize("url", NON_HTTPS_URLS)
+    def test_opener_has_no_handler_for_non_https_schemes(self, url: str) -> None:
+        with pytest.raises(urllib.error.URLError, match="unknown url type"):
+            sign_proxy._HTTPS_OPENER.open(urllib.request.Request(url), timeout=1)  # noqa: S310

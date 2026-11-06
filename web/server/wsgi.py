@@ -409,18 +409,39 @@ _session = boto3.Session()
 
 
 def _require_https(url: str) -> str:
-    """Reject anything that is not http(s) before it reaches urlopen.
+    """Reject anything that is not https before it reaches the network.
 
-    urlopen honours file:, ftp: and custom schemes, so a URL assembled from
-    configuration or an upstream feed could read from the local filesystem
-    instead of the network. Scheme is validated here rather than trusted.
+    A URL assembled from configuration or an upstream feed is validated here
+    rather than trusted; _HTTPS_OPENER enforces the same rule a second time.
     """
     parsed = urllib.parse.urlparse(url)
-    if parsed.scheme not in ("https", "http"):
-        raise ValueError(f"refusing non-http(s) scheme: {parsed.scheme or '(none)'}")
+    if parsed.scheme != "https":
+        raise ValueError(f"refusing non-https scheme: {parsed.scheme or '(none)'}")
     if not parsed.netloc:
         raise ValueError("refusing URL without a host")
     return url
+
+
+def _https_opener() -> urllib.request.OpenerDirector:
+    """Build an opener that can only speak HTTPS.
+
+    urlopen's default opener also serves file:, ftp:, data: and plain http: URLs.
+    This one installs no handler for those schemes, so they fail with "unknown url
+    type" even if a caller skips _require_https, and a redirect to one fails too.
+    """
+    opener = urllib.request.OpenerDirector()
+    for handler in (
+        urllib.request.UnknownHandler(),
+        urllib.request.HTTPSHandler(),
+        urllib.request.HTTPDefaultErrorHandler(),
+        urllib.request.HTTPRedirectHandler(),
+        urllib.request.HTTPErrorProcessor(),
+    ):
+        opener.add_handler(handler)
+    return opener
+
+
+_HTTPS_OPENER = _https_opener()
 
 
 def _region() -> str:
@@ -574,9 +595,7 @@ def _proxy(environ, start, user_sub: str | None):
         _require_https(upstream), data=body or None, method=method, headers=dict(aws_req.headers)
     )
     try:
-        # urlopen accepts file:, ftp: and custom schemes; the URL passed here was
-        # validated by _require_https, so only http(s) with a host reaches this call.
-        with urllib.request.urlopen(req, timeout=UPSTREAM_TIMEOUT) as resp:  # noqa: S310  # nosec B310
+        with _HTTPS_OPENER.open(req, timeout=UPSTREAM_TIMEOUT) as resp:
             payload, status, upstream_headers = resp.read(), resp.status, resp.headers
     except urllib.error.HTTPError as e:
         # Forward 4xx/5xx verbatim: a 400 validation message or a 403 ownership

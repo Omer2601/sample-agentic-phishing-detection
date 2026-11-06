@@ -122,10 +122,10 @@ class AuthConfigError(RuntimeError):
 
 
 def _require_https(url: str) -> str:
-    """Reject anything that is not https before it reaches urlopen.
+    """Reject anything that is not https before it reaches the network.
 
-    urlopen honours file: and custom schemes, so a token endpoint assembled from
-    a configuration value could otherwise read from the local filesystem.
+    A token endpoint assembled from a configuration value is validated here
+    rather than trusted; _HTTPS_OPENER enforces the same rule a second time.
     """
     parsed = urllib.parse.urlparse(url)
     if parsed.scheme != "https":
@@ -133,6 +133,28 @@ def _require_https(url: str) -> str:
     if not parsed.netloc:
         raise ValueError("refusing URL without a host")
     return url
+
+
+def _https_opener() -> urllib.request.OpenerDirector:
+    """Build an opener that can only speak HTTPS.
+
+    urlopen's default opener also serves file:, ftp:, data: and plain http: URLs.
+    This one installs no handler for those schemes, so they fail with "unknown url
+    type" even if a caller skips _require_https, and a redirect to one fails too.
+    """
+    opener = urllib.request.OpenerDirector()
+    for handler in (
+        urllib.request.UnknownHandler(),
+        urllib.request.HTTPSHandler(),
+        urllib.request.HTTPDefaultErrorHandler(),
+        urllib.request.HTTPRedirectHandler(),
+        urllib.request.HTTPErrorProcessor(),
+    ):
+        opener.add_handler(handler)
+    return opener
+
+
+_HTTPS_OPENER = _https_opener()
 
 
 def config() -> dict:
@@ -436,9 +458,7 @@ def handle_callback(environ: dict) -> tuple[str, list[tuple[str, str]]] | None:
         },
     )
     try:
-        # urlopen accepts file: and custom schemes; the URL was validated by
-        # _require_https, so only https with a host reaches this call.
-        with urllib.request.urlopen(req, timeout=15) as resp:  # noqa: S310  # nosec B310
+        with _HTTPS_OPENER.open(req, timeout=15) as resp:
             tokens = json.loads(resp.read().decode())
     except Exception as exc:  # noqa: BLE001
         # Only the exception class name is logged (for example HTTPError), never
