@@ -1,8 +1,8 @@
 # Deploy
 
-You can deploy this sample into your own AWS account, in any Region where Amazon Bedrock AgentCore and the two Claude models are available. Deploying takes about 8 minutes the first time and about 4 minutes for an update (measured in our test account, see [3. Deploy](#3-deploy-about-8-minutes)). Everything below runs against the account and Region your AWS credentials point at, so check them first.
+You can deploy this sample into your own AWS account, in any Region where Amazon Bedrock AgentCore and the two Claude models are available. Deploying takes about 8 minutes the first time with warm container caches, 16 minutes from a fresh clone, and about 4 minutes for an update (measured in our test account, see [3. Deploy](#3-deploy-8-to-16-minutes)). Everything below runs against the account and Region your AWS credentials point at, so check them first.
 
-**On this page:** [Prerequisites](#prerequisites) · [1. Check your account](#1-choose-a-region-and-check-your-account-2-minutes) · [2. Bootstrap](#2-bootstrap-cdk-in-both-regions-one-time) · [3. Deploy](#3-deploy-about-8-minutes) · [Options](#options) · [Sign-in and MFA](#sign-in-and-mfa) · [Custom domain](#custom-domain) · [Verify](#verify) · [Clean up](#clean-up) · [Troubleshooting](#troubleshooting)
+**On this page:** [Prerequisites](#prerequisites) · [1. Check your account](#1-choose-a-region-and-check-your-account-2-minutes) · [2. Bootstrap](#2-bootstrap-cdk-in-both-regions-one-time) · [3. Deploy](#3-deploy-8-to-16-minutes) · [Options](#options) · [Sign-in and MFA](#sign-in-and-mfa) · [Custom domain](#custom-domain) · [Verify](#verify) · [Clean up](#clean-up) · [Troubleshooting](#troubleshooting)
 
 ## Prerequisites
 
@@ -46,7 +46,7 @@ npx aws-cdk@2.1143.0 bootstrap aws://<account-id>/$AWS_REGION aws://<account-id>
 
 The application deploys to your Region (`AWS_REGION`). Only the `PhishTriageAgenticEdge` stack, which holds the AWS WAF web ACL for CloudFront, deploys to `us-east-1`, because AWS requires web ACLs for CloudFront to be created there. CDK deploys only to bootstrapped Regions, so bootstrap both once per account. If your Region is `us-east-1`, one bootstrap covers both.
 
-## 3. Deploy (about 8 minutes)
+## 3. Deploy (8 to 16 minutes)
 
 ```bash
 cd infra
@@ -54,9 +54,9 @@ export CDK_DOCKER=docker   # or finch
 npx aws-cdk@2.1143.0 deploy --all -c owner=<team or alias>
 ```
 
-Set `owner` to your team or alias. Without it every resource is tagged `Owner=phish-triage-owner`, and nobody can tell from Cost Explorer who is paying. This creates two stacks: `PhishTriageAgenticEdge` in `us-east-1` (the web ACL and, with the default `-c webSearch=true`, the AgentCore Web Search Gateway; in a Region that offers Web Search, that target moves to the regional tools Gateway and the edge stack has no Gateway) and `PhishTriageAgentic` in your Region (everything else).
+Set `owner` to your team or alias. Without it every resource is tagged `Owner=phish-triage-owner`, and nobody can tell from Cost Explorer who is paying. This creates two stacks: `PhishTriageAgenticEdge` in `us-east-1` (the web ACL and, with the default `-c webSearch=true`, the AgentCore Web Search Gateway; in a Region that offers Web Search, that Gateway moves to the regional stack instead, still a Gateway of its own and never a target on the tools Gateway, and the edge stack has no Gateway) and `PhishTriageAgentic` in your Region (everything else).
 
-Measured durations, from our test account in `us-west-2` on 2026-09-30 with Finch on an Apple silicon laptop: creating `PhishTriageAgentic` took 476 s (about 8 minutes), and in-place updates took 220 s and 238 s. These are per-stack times for `PhishTriageAgentic` only. Updating a stack deployed before the scans table had its `status-queued_at` index adds that index in place (the table is not replaced); DynamoDB backfills it from the stored scans before that update finishes, so that one update takes longer on a table with many stored scans. A timed first `deploy --all` of a second copy (`-c appName=verify`, same account, laptop and Region, 2026-10-15) took 540 s end to end, including both stacks and the container image builds, and its first scans answered at once. Your times depend on your network and container runtime.
+Measured durations, from our test account in `us-west-2` on 2026-09-30 with Finch on an Apple silicon laptop: creating `PhishTriageAgentic` took 476 s (about 8 minutes), and in-place updates took 220 s and 238 s. These are per-stack times for `PhishTriageAgentic` only. Updating a stack deployed before the scans table had its `status-queued_at` index adds that index in place (the table is not replaced); DynamoDB backfills it from the stored scans before that update finishes, so that one update takes longer on a table with many stored scans. A timed first `deploy --all` of a second copy (`-c appName=verify`, same account, laptop and Region, 2026-10-15) took 540 s end to end, including both stacks and the container image builds, and its first scans answered at once. A first `deploy --all` from a fresh clone on 2026-11-03 took about 16 minutes, most of it building the container images. Your times depend on your network and container runtime.
 
 ## Options
 
@@ -97,7 +97,7 @@ This deletes both stacks and their data: tables, buckets, the user pool (and eve
 
 | Left behind                                  | How to remove it                                                                                                            |
 | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| The orchestrator harness log group           | AgentCore creates it on the first scan, under `/aws/bedrock-agentcore/` with `phish_orchestrator` in its name, with no retention. Delete it, or set a retention after the first scan with `aws logs put-retention-policy` |
+| The orchestrator harness log group           | Only if a scan ran on the Harness path (`-c directOrchestration=false` or `-c agentRegistry=true`): AgentCore creates it on the first such scan, under `/aws/bedrock-agentcore/` with `phish_orchestrator` in its name, with no retention. Delete it, or set a retention after the first scan with `aws logs put-retention-policy` |
 | The orchestrator's former managed memory     | Only on a stack first deployed before 2026-10-16: the harness ran with managed memory then (`<appName>_orchestrator-*` in AgentCore Memory). An update turns it off and detaches it but does not delete it or its records; delete it in the AgentCore console or with `aws bedrock-agentcore-control delete-memory` |
 | CDK bootstrap stacks (`CDKToolkit`)          | Keep them if you use CDK elsewhere. Otherwise delete the stack in both Regions, then its staging bucket                     |
 | Container images in the CDK asset repository | Removed with the bootstrap stack, or delete the images in Amazon ECR                                                        |
