@@ -13,7 +13,7 @@
 
 ## Demo
 
-[![Animated preview, 25 seconds, no sound, footage sped up 2x: a reported DPD parcel link is scanned, the live stages run, and the result shows Phishing, risk 95, recommended action Block, with the orchestrator report and the specialists' evidence](docs/media/teaser.gif)](docs/media/demo.mp4)
+[![Animated preview, 25 seconds, no sound, footage sped up: a reported parcel-delivery link is scanned, the live stages run, and the result shows Phishing, risk 95, recommended action Block, with the orchestrator report and the specialists' evidence](docs/media/teaser.gif)](docs/media/demo.mp4)
 
 The preview above is a silent 25-second excerpt. Watch the [full 4-minute demo with narration](docs/media/demo.mp4), or page through the [presentation](docs/presentation/agentic-phishing-detection.pdf).
 

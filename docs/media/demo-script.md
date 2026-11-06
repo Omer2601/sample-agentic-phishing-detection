@@ -24,7 +24,7 @@ Script of `demo.mp4` (about 4 minutes 0 seconds, 1920x1080, 30 fps). Narration i
 
 ## README preview
 
-`teaser.gif` is scenes 3 and 4 (0:54.4 to 1:44.4) at 2x speed, 6 fps, 800 px wide, no audio. Rebuild it from `demo.mp4`:
+`teaser.gif` is scene 3 and the first 28 s of scene 4 (0:54.4 to 1:44.4) at 2x the video's speed (the video's own 1.5x and 4x badges stay visible), 6 fps, 800 px wide, no audio. Rebuild it from `demo.mp4`:
 
 ```bash
 ffmpeg -ss 54.4 -t 50 -i docs/media/demo.mp4 -an \
