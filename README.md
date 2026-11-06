@@ -71,6 +71,15 @@ Watch the [full demo with narration](docs/media/demo.mp4), or page through the [
 | `error_404`  | The URL returned HTTP 404, so there was no page to judge (risk 10)                                                                                | allow  |
 | `site_down`  | The host does not resolve, refuses the connection, answers HTTP 410 or redirects to a dead host (risk 10). A certificate error is never Site down | allow  |
 
+### How this differs from third-party URL scanners
+
+Rather than relying on a hosted service's blocklists or past reports, this sample analyzes each URL directly, in your own AWS account:
+
+- **Live content analysis.** For each URL, it opens the page in an isolated Amazon Bedrock AgentCore Browser, and three specialist agents examine the link and the live page: its address and domain registration, its visual branding and on-page copy, and its underlying code (forms, scripts, where data is sent). An orchestrator then returns a verdict with a risk score and a confidence. Because it judges the page itself, it can flag a newly created phishing site that a reputation-based lookup may not recognize yet.
+- **Customer-managed: it runs entirely in your own AWS account.** You deploy and operate it, so the URLs you scan and all evidence stay inside your account. You control the models, the AWS Region, the data-retention windows, and who may call the API (IAM) or use the web app (Amazon Cognito). This makes it suitable for sensitive, internal, or not-yet-public URLs.
+
+The trade-off is deliberate: this is sample code that performs per-scan AI analysis you run and pay for, not a managed, pre-populated reputation database. Verdicts are advisory; have a person review any verdict with a low confidence score.
+
 ## How it works
 
 ![Architecture: users and API clients reach API Gateway directly or through CloudFront and AWS WAF; the API queues each scan on Amazon SQS for the worker Lambda. The worker pre-checks the URL on the tools server and, at the same time, invokes url_analyst, brand_visual and code_analyst (step 3). brand_visual and code_analyst each capture the page through their own copy of the tools server (step 4), which drives AgentCore Browser (step 5). The worker then asks the orchestrator model on Amazon Bedrock for the verdict and the report (step 6). The supporting services row, including the standby Harness path and the opt-in Agent Registry, has no lines](docs/architecture.png)
