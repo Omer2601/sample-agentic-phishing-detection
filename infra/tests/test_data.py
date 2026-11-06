@@ -20,10 +20,14 @@ def test_cmk_rotates(t):
     t.has_resource_properties("AWS::KMS::Key", {"EnableKeyRotation": True})
 
 
-def test_key_policy_lets_logs_and_alarms_use_it(t):
+def test_key_policy_lets_logs_and_alarms_use_it(t, test_env):
     key = next(iter(t.find_resources("AWS::KMS::Key").values()))
-    principals = str(key["Properties"]["KeyPolicy"])
-    assert "logs." in principals and "cloudwatch.amazonaws.com" in principals
+    services = {
+        s["Principal"]["Service"]
+        for s in key["Properties"]["KeyPolicy"]["Statement"]
+        if "Service" in s["Principal"]
+    }
+    assert services == {f"logs.{test_env.region}.amazonaws.com", "cloudwatch.amazonaws.com"}
 
 
 @pytest.mark.parametrize(

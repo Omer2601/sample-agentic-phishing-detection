@@ -11,7 +11,7 @@ from __future__ import annotations
 import os
 import pathlib
 import shlex
-import subprocess
+import subprocess  # nosec B404: test runs a fixed /bin/sh argv, no shell
 
 RUN_SH = pathlib.Path(__file__).resolve().parent.parent / "run.sh"
 

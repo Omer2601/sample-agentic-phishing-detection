@@ -19,6 +19,8 @@ TERMINAL = {"COMPLETE", "FAILED"}
 RETRY_STATUSES = {429, 503}
 MAX_ATTEMPTS = 6
 _sleep = time.sleep
+# Retry jitter only; SystemRandom keeps it off the predictable module-level generator.
+_JITTER = random.SystemRandom()
 
 
 def require_https(url: str) -> str:
@@ -71,7 +73,7 @@ class ApiClient:
             if status not in RETRY_STATUSES or attempt == MAX_ATTEMPTS - 1:
                 return status, parsed
             # Full jitter on top of the exponential step spreads retries from parallel workers.
-            _sleep(min(0.5 * 2**attempt, 16.0) * (1 + random.random() / 2))  # noqa: S311 - jitter, not crypto
+            _sleep(min(0.5 * 2**attempt, 16.0) * (1 + _JITTER.random() / 2))
         return status, parsed
 
     def _request_once(

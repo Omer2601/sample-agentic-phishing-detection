@@ -387,8 +387,10 @@ def _network(requests: list[dict], host: str) -> tuple[dict, list[dict]]:
     return summary, [req for _, _, req in sorted(notable, key=lambda n: n[:2])]
 
 
-_DROP_BLOCKS = re.compile(r"<(style|svg|template)\b[^>]*>.*?</\1\s*>", re.I | re.S)
-_SCRIPT_BODY = re.compile(r"(<script\b[^>]*>).*?(</script\s*>)", re.I | re.S)
+# An end tag is the name then anything up to ">" (`</script foo>` closes a script), and an
+# element left open runs to the end of the document, so both forms are matched.
+_DROP_BLOCKS = re.compile(r"<(style|svg|template)\b[^>]*>.*?(?:</\1\b[^>]*>|\Z)", re.I | re.S)
+_SCRIPT_BODY = re.compile(r"(<script\b[^>]*>).*?(</script\b[^>]*>|\Z)", re.I | re.S)
 _COMMENT = re.compile(r"<!--.*?-->", re.S)
 _LONG_ATTR = re.compile(rf"(\s[\w:-]+=)(\"[^\"]{{{MAX_ATTR},}}\"|'[^']{{{MAX_ATTR},}}')")
 _LONG_TEXT = re.compile(rf">([^<]{{{MAX_TEXT},}})<")

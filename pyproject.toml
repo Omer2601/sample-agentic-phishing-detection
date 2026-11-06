@@ -69,6 +69,11 @@ testpaths = [
   "eval",
 ]
 
+[tool.bandit.assert_used]
+# pytest tests are written with assert, so B101 is skipped for test code only. Production
+# code never relies on assert (it is stripped under -O); it raises explicitly instead.
+skips = ["*/tests/*", "*/test_*.py", "*/conftest.py"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py313"

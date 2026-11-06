@@ -297,6 +297,15 @@ def test_dom_keeps_styles_that_hide_content():
     assert "color:red" not in dom and "opacity:0.5" not in dom
 
 
+def test_dom_drops_script_bodies_whatever_the_end_tag_looks_like():
+    dom = compact_dom(
+        "<p>a</p><SCRIPT>one()</SCRIPT ><script>two()</script foo>"
+        "<script>three()</script\t\n bar><style>x{}</style class=y><script>four()"
+    )
+    assert dom.startswith("<p>a</p>")
+    assert not any(body in dom for body in ("one()", "two()", "three()", "four()", "x{}"))
+
+
 def test_budget_is_capped_inside_the_untrusted_fence(monkeypatch):
     monkeypatch.setenv(compact_view.TOKENS_ENV, "100000")
     assert compact_view.budget_tokens() == compact_view.MAX_TOKENS
