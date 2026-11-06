@@ -38,7 +38,7 @@ From an empty AWS account to your first verdict, your first API call and a clean
    npx aws-cdk@2.1143.0 bootstrap aws://<account-id>/$AWS_REGION aws://<account-id>/us-east-1
    ```
 
-4. **Deploy** (8 minutes in our test account with warm container caches, 16 minutes from a fresh clone on 2026-11-03, most of it building the container images; see [docs/deploy.md](deploy.md#3-deploy-about-8-minutes)):
+4. **Deploy** (8 minutes in our test account with warm container caches, 16 minutes from a fresh clone on 2026-11-03, most of it building the container images; see [docs/deploy.md](deploy.md#3-deploy-8-to-16-minutes)):
 
    ```bash
    cd infra
@@ -180,7 +180,7 @@ Every response except `GET /health` carries a top-level `disclaimer` field, and 
 | Scenario (test stack, `us-west-2`) | To the verdict | Source |
 | --- | --- | --- |
 | Current default, 448 URLs submitted at once, `scanConcurrency` 25 (2026-11-03) | Median 18.6 s, p90 31.2 s from worker start; median 325 s from submit, because most of that is queue wait at 25 scans in flight | [evaluation.md](evaluation.md#latency-flags-on-by-default-2026-11-03) |
-| Dead or HTTP 404 URL, answered by the pre-check (2026-10-18) | 1.0 to 6.7 s | [evaluation.md](evaluation.md#current-design) |
+| Dead or HTTP 404 URL, answered by the pre-check (Harness path, 2026-10-18) | 1.0 to 6.7 s | [evaluation.md](evaluation.md#harness-path-design-default-2026-10-21-to-2026-11-02) |
 
 The report follows the verdict; it was not timed on its own on the current default. Earlier designs are in [evaluation.md](evaluation.md#latency-history).
 
@@ -220,7 +220,7 @@ A few things stay behind and are yours to remove:
 
 | Left behind                                                                                           | How to remove it                              |
 | ----------------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| The orchestrator harness log group (`/aws/bedrock-agentcore/`, with `<appName>_orchestrator`, by default `phish_orchestrator`, in its name) | Delete it by hand |
+| The orchestrator harness log group (`/aws/bedrock-agentcore/`, with `<appName>_orchestrator`, by default `phish_orchestrator`, in its name), only if a scan ran on the Harness path (`-c directOrchestration=false`) | Delete it by hand |
 | The orchestrator's former managed memory, only on a stack first deployed before 2026-10-16            | See [docs/deploy.md](deploy.md#clean-up) |
 | CDK bootstrap stacks (`CDKToolkit`) in your Region and `us-east-1`                                    | Keep them if you use CDK elsewhere            |
 | Log groups of the CDK helper Lambdas (`/aws/lambda/<Name>TriageAgentic-*`, untagged)                  | Delete them by hand                           |

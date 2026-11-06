@@ -2,11 +2,13 @@
 
 Runs the three specialists at the same time and hands the orchestrator their three Findings in one reply. It makes no model call of its own.
 
+By default the dispatcher is deployed but idle: the worker invokes the three specialists itself (`directSpecialists`, on by default). It is on the scan path on the Harness path (`-c directOrchestration=false`), and with `-c directSpecialists=false`, where the worker calls it instead of the specialists.
+
 |           |                                                                                                                                                                           |
 | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Runs on   | Amazon Bedrock AgentCore Runtime (`phish_dispatcher`), as an MCP server, from the same container image as the specialists (`AGENT=dispatcher`)                            |
 | Model     | None. It only invokes the three specialist Runtimes; it never calls Bedrock                                                                                               |
-| Called by | The orchestrator, once per scan in the first round, through AgentCore Gateway `phish-specialists` as `dispatcher___analyze_all`                                           |
+| Called by | Harness path: the orchestrator, once per scan in the first round, through AgentCore Gateway `phish-specialists` as `dispatcher___analyze_all`. With `-c directSpecialists=false`: the worker, directly with `InvokeAgentRuntime`. Not called by default |
 | Tools     | Exposes `analyze_all(url, scan_id)`. It calls the `url_analyst`, `brand_visual` and `code_analyst` Runtimes concurrently with `InvokeAgentRuntime` (their `analyze` tool) |
 | Prompt    | None                                                                                                                                                                      |
 | Code      | [`agents/phish_agents/dispatcher/server.py`](../../agents/phish_agents/dispatcher/server.py)                                                                              |
@@ -30,9 +32,11 @@ A specialist that errors, times out or is throttled comes back as an error Findi
 
 | Limit                                     | Value                                                                        |
 | ----------------------------------------- | ---------------------------------------------------------------------------- |
-| Specialist deadline (inside each Runtime) | 30 s for url_analyst, 35 s for the two page specialists, brand_visual and code_analyst (a browser capture plus their longest model turn: code_analyst runs reached 29.4 s, and brand_visual's model ran out of time on 5 of 317 scans at 30 s); the specialist answers with its own error Finding at that point |
-| Read timeout per specialist invoke        | 45 s, one attempt only (a retry would start a second, billed specialist run) |
-| Backstop per specialist                   | 50 s (`asyncio.wait_for`), so a hung socket cannot hold the Gateway call     |
+| Specialist deadline (inside each Runtime) | 30 s for url_analyst, 42 s for the two page specialists, brand_visual and code_analyst (a browser capture plus their longest model turn); the specialist answers with its own error Finding at that point |
+| Read timeout per specialist invoke        | 52 s, one attempt only (a retry would start a second, billed specialist run) |
+| Backstop per specialist                   | 57 s (`asyncio.wait_for`), so a hung socket cannot hold the Gateway call     |
+
+These are the defaults (`latencyBudgets` on). With `-c latencyBudgets=false` the page specialists' deadline is 35 s (code_analyst runs reached 29.4 s, and brand_visual's model ran out of time on 5 of 317 scans at 30 s), the read timeout 45 s and the backstop 50 s. url_analyst keeps 30 s either way (`common/server.py`, `dispatcher/server.py`).
 
 ## Permissions
 
