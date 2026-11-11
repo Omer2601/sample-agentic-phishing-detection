@@ -56,7 +56,7 @@ The preview above is a silent 25-second excerpt. Watch the [full 4-minute demo w
 | **Runs in**       | Your own AWS account. One AWS CDK command deploys it, one tears it down                                                                                  |
 
 - **Scan one URL** in the web app or with one API call.
-- **Scan many URLs at once**: up to 200 from a CSV in the web app, up to 1,000 through the API.
+- **Scan many URLs at once**: up to 200 from a CSV in the web app. Through the API, up to 1,000 from a CSV or 50 as JSON.
 - **See the evidence**: a screenshot of the page, how the link redirected, what the page's code does, the domain's registration facts, and a report.
 - **Act on the verdict first**: it appears while the full report is still being written.
 - **Answer dead links fast**: a page that answers HTTP 404, or a host that is down, gets a fixed answer without an orchestrator call.
@@ -144,8 +144,8 @@ A pre-publish gate holds a link for a person to review when the scan `FAILED`, t
 | ----------------------- | -------------------------- | ---------------------------------------------------------- |
 | Deployed stacks, idle   | About $14 to $15 per month | Estimate, mostly the AWS WAF web ACL; Cost Explorer agreed |
 | Model tokens per scan   | $0.090 mean                | Measured, current default, 407 live URLs (2026-11-03)      |
-| Other services per scan | About $0.015               | Estimate from measured usage                               |
-| 1,000 scans in a month  | About $120 to $130         | Computed from the rows above                               |
+| Other services per scan | About $0.015               | Estimate from usage measured on the earlier default        |
+| 1,000 scans in a month  | About $120 to $130         | The rows above plus stored data and hourly metrics         |
 
 Per-service breakdown, monthly examples and assumptions (`us-west-2`, on-demand prices): [docs/cost.md](docs/cost.md). The Insights page shows your real token spend per URL, batch and model; filter Cost Explorer on the `Project` and `Owner` tags for the rest.
 
@@ -174,12 +174,12 @@ All options, including each latency flag and what it trades: [docs/configuration
 - **Guardrails both ways.** Amazon Bedrock Guardrails check every submitted URL and every report; URLs in model-written text are defanged (`hxxps://example[.]com`).
 - **Encrypted, scoped and tagged.** AWS KMS customer managed keys on tables, buckets, queues and logs; one IAM role per component, with every wildcard listed and explained in [security.md](docs/security.md#iam).
 
-Details: [security.md](docs/security.md), [threat model](docs/threat-model.md), [responsible AI](docs/responsible-ai.md). To report a security issue, see [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications).
+Details: [security.md](docs/security.md), [threat model](docs/threat-model.md), [responsible AI](docs/responsible-ai.md). To report a security issue, see [SECURITY.md](SECURITY.md).
 
 ## Clean up
 
 > [!WARNING]
-> The stacks cost about $14 to $15 per month even when you run no scans (estimate for `us-west-2` from AWS list prices, checked 2026-10-18; Cost Explorer for the tagged stacks agreed over 2026-10-15 to 2026-10-18; breakdown in [cost.md](docs/cost.md)). Delete them when you are done. This deletes the stored scans and every Cognito user.
+> The stacks cost about $14 to $15 per month even when you run no scans (see [Cost](#cost)). Delete them when you are done. This deletes the stored scans and every Cognito user.
 
 ```bash
 cd infra
@@ -188,7 +188,7 @@ npx aws-cdk@2.1143.0 destroy --all
 npx aws-cdk@2.1143.0 destroy --all -c appName=<name>
 ```
 
-Then confirm nothing tagged for this sample is left (both should return an empty `ResourceTagMappingList`):
+Then confirm nothing tagged for this sample is left. Every copy shares the `Project` tag, so once you have destroyed every copy, both commands should return an empty `ResourceTagMappingList`:
 
 ```bash
 aws resourcegroupstaggingapi get-resources --tag-filters Key=Project,Values=phish-triage --region "$AWS_REGION"
@@ -201,12 +201,12 @@ A few things stay behind and are yours to remove (a log group created at run tim
 
 ```text
 agents/      the three specialists, the dispatcher and the tools server (Python, Strands) and the orchestrator prompt
-backend/     Lambda functions: API, CSV split, worker (orchestration), stats, sweepers
+backend/     Lambda functions: API, CSV split, worker (orchestration), stats, sweepers, Cognito sign-up check
 contracts/   shared data models (Finding, Verdict, ScanRecord) used by every component
 infra/       AWS CDK app (Python): app.py and one construct per layer
 web/         React app (Tailwind CSS), plus the Python web tier that signs you in and signs API calls
 eval/        a script that scores each agent on a labelled URL set
-tests/       end-to-end, security and docs tests
+tests/       end-to-end, security, docs and script tests
 scripts/     preflight account check and the pre-push checks
 docs/        everything below
 ```

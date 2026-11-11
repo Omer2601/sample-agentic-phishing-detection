@@ -40,8 +40,8 @@ To send us a pull request, please:
 Run the full gate with `uv run python scripts/prepush.py` (add `--only lint,test` for a subset), and install it as your pre-push hook once with `uv run python scripts/prepush.py --install-hook`.
 It runs dash and license header checks, ruff, pytest, the web lint, tests and build, CDK synth (with cdk-nag), cfn-lint and checkov; every step must pass.
 
-GitHub provides additional document on [forking a repository](https://help.github.com/articles/fork-a-repo/) and
-[creating a pull request](https://help.github.com/articles/creating-a-pull-request/).
+GitHub provides additional document on [forking a repository](https://docs.github.com/en/pull-requests/how-tos/work-with-forks/fork-a-repo) and
+[creating a pull request](https://docs.github.com/en/pull-requests/how-tos/create-pull-requests/creating-a-pull-request).
 
 
 ## Finding contributions to work on
@@ -55,11 +55,11 @@ opensource-codeofconduct@amazon.com with any additional questions or comments.
 
 
 ## Security issue notifications
-If you discover a potential security issue in this project we ask that you notify AWS/Amazon Security via our [vulnerability reporting page](http://aws.amazon.com/security/vulnerability-reporting/). Please do **not** create a public github issue.
+If you discover a potential security issue in this project we ask that you notify AWS/Amazon Security via our [vulnerability reporting page](https://aws.amazon.com/security/vulnerability-reporting/). Please do **not** create a public github issue.
 
 
 ## Licensing
 
 See the [LICENSE](https://github.com/aws-samples/sample-agentic-phishing-detection/blob/main/LICENSE) file for our project's licensing. We will ask you to confirm the licensing of your contribution.
 
-We may ask you to sign a [Contributor License Agreement (CLA)](http://en.wikipedia.org/wiki/Contributor_License_Agreement) for larger changes.
+We may ask you to sign a [Contributor License Agreement (CLA)](https://en.wikipedia.org/wiki/Contributor_License_Agreement) for larger changes.

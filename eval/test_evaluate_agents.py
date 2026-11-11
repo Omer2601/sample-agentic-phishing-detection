@@ -43,6 +43,7 @@ def test_score_counts_confusion_and_errors():
     s = ev.score(rows)
     assert (s["tp"], s["fn"], s["tn"], s["fp"], s["errors"]) == (1, 1, 1, 1, 1)
     assert s["precision"] == 0.5 and s["recall"] == 0.5 and s["p50_ms"] == 30
+    assert s["fpr"] == 0.5
 
 
 def test_extract_verdict():

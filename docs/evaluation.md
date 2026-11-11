@@ -2,7 +2,7 @@
 
 You can measure how well each agent, and the whole team, labels a set of URLs you already know the answer to. This page also keeps the measured latency and cost of the current design and of every earlier design, so the README can stay short.
 
-**On this page:** [Run it](#run-it) · [The dataset](#the-dataset) · [Metrics](#metrics) · [Accuracy on live phishing](#accuracy-on-live-phishing-2026-10-16) · [Accuracy rerun, 2026-10-21](#accuracy-rerun-2026-10-21) · [Harness path design](#harness-path-design-default-2026-10-21-to-2026-11-02) · [Prompt caching rerun](#prompt-caching-rerun-2026-10-25) · [Accuracy rerun, 2026-10-26](#accuracy-rerun-2026-10-26) · [Accuracy rerun, 2026-10-27](#accuracy-rerun-2026-10-27) · [Each latency flag on its own](#each-latency-flag-on-its-own-2026-11-03) · [Latency history](#latency-history) · [Cost history](#cost-history) · [Limitations](#limitations)
+**On this page:** [Run it](#run-it) · [The dataset](#the-dataset) · [Metrics](#metrics) · [Compare with hosted scanners](#compare-with-hosted-scanners) · [Accuracy on live phishing](#accuracy-on-live-phishing-2026-10-16) · [Accuracy rerun, 2026-10-21](#accuracy-rerun-2026-10-21) · [Harness path design](#harness-path-design-default-2026-10-21-to-2026-11-02) · [Prompt caching rerun](#prompt-caching-rerun-2026-10-25) · [Accuracy rerun, 2026-10-26](#accuracy-rerun-2026-10-26) · [Accuracy rerun, 2026-10-27](#accuracy-rerun-2026-10-27) · [Each latency flag on its own](#each-latency-flag-on-its-own-2026-11-03) · [Latency history](#latency-history) · [Cost history](#cost-history) · [Limitations](#limitations)
 
 > [!WARNING]
 > Every URL is a paid call to Amazon Bedrock and AgentCore, and each one opens real web pages. Start with `--limit 5`. A full run of the committed sample can take 20 minutes or more: the script calls each of the 4 agents for each of the 21 URLs one at a time (84 calls), and one call takes about 6 to 35 s.
@@ -36,7 +36,34 @@ To use your own data, write a CSV with a header `url,label` where `label` is `ph
 - **Precision**: of the URLs called phishing, how many were phishing. Low precision means false alarms.
 - **Recall**: of the phishing URLs, how many were caught. Low recall means misses.
 - **F1**: one number that balances the two.
+- **False positive rate**: of the legitimate URLs, how many were called phishing.
 - **`--suspicious-as`**: a `suspicious` verdict is not a yes or a no. Scoring it both ways shows how much your result depends on that choice.
+
+## Compare with hosted scanners
+
+`eval/benchmark_vendors.py` sends the same labelled URLs to two hosted URL scanners and scores them with the same metrics as `evaluate_agents.py`, next to this sample's own rows from a results file. The output names the scanners only as Vendor 1 and Vendor 2.
+
+```bash
+export VT_API_KEY=<key> URLSCAN_API_KEY=<key>   # Vendor 1, Vendor 2; a missing key skips that vendor
+uv run --package phish-agents python eval/benchmark_vendors.py \
+  --ours eval/results/<utc-time>.json --limit 5
+```
+
+| Flag                    | Values                                                                     | Default                          |
+| ----------------------- | -------------------------------------------------------------------------- | -------------------------------- |
+| `--dataset`, `--limit`  | As for `evaluate_agents.py`                                                | `eval/data/committed_sample.csv` |
+| `--ours`                | An `evaluate_agents.py` results file, scored on the same URLs              | no row for this sample           |
+| `--ours-agent`          | Which agent's rows to use from that file                                   | `orchestrator`                   |
+| `--vt-min-detections`   | Vendor 1 calls a URL phishing at this many detections or more              | `1`                              |
+| `--vt-count-suspicious` | Count Vendor 1 `suspicious` detections as well as `malicious`              | off                              |
+| `--out-dir`             | Where the CSV, the summary and the cache go                                | `eval/results/vendors`           |
+
+- **Output.** `<utc-time>.csv` has one row per scanner and URL (prediction and the vendor's raw counts or error). `<utc-time>.md` is a table of recall, false positive rate and unscored URLs per scanner, with the run date, the URL count and the Vendor 1 threshold. A URL with no verdict (an error or a time-out) is unscored and left out of recall and false positive rate. Our row uses the `evaluate_agents.py` scoring (`--suspicious-as`), not the risk-50 "caught" rule of the runs below.
+- **Resumable.** Each finished vendor response is cached under `eval/results/vendors/cache/` (gitignored), so a rerun skips URLs already done. Rate-limited and network failures are not cached and are retried on the next run.
+- **Rate limits.** Vendor 1's public API allows 4 requests a minute and 500 a day, so the script waits at least 15 s between calls and needs at least two calls per URL (about 250 URLs a day at most). When it is still rate limited after its retries it stops that vendor for the run; rerun the next day to resume. Every 429 is retried with backoff, honoring `Retry-After`.
+- **Scans are unlisted.** Vendor 2 scans are always submitted with visibility `unlisted`, never `public`. This is hard-coded, not a flag.
+- **Submitted URLs leave your account.** Both vendors keep what you submit, and unlisted scans are still visible to the vendor and its vetted users. Do not submit private or customer URLs.
+- **Check the terms before you publish.** Read each vendor's terms of service before publishing results. The VirusTotal public API is for non-commercial use only, and some terms limit publishing comparisons. Get permission, or a commercial key, where the terms require it.
 
 ## Accuracy on live phishing, 2026-10-16
 

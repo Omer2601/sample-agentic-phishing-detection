@@ -97,6 +97,7 @@ def score(rows: list[dict]) -> dict:
         "accuracy": ratio(tp + tn, tp + tn + fp + fn),
         "precision": precision,
         "recall": recall,
+        "fpr": ratio(fp, fp + tn),
         "f1": f1,
         "p50_ms": int(statistics.median(latencies)) if latencies else None,
     }

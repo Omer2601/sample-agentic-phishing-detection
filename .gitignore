@@ -23,6 +23,8 @@ node_modules
 # Evaluation run outputs: environment-specific and contain account identifiers.
 # Keep the directory, not the results.
 eval/results/*.json
+# Vendor benchmark cache and outputs: raw vendor responses and the URLs scanned.
+eval/results/vendors/
 
 # End-to-end test inputs and reports: real URLs, timings and account identifiers.
 tests/e2e/data/
