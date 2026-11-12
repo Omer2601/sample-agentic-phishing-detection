@@ -2,7 +2,7 @@
 
 You can measure how well each agent, and the whole team, labels a set of URLs you already know the answer to. This page also keeps the measured latency and cost of the current design and of every earlier design, so the README can stay short.
 
-**On this page:** [Run it](#run-it) · [The dataset](#the-dataset) · [Metrics](#metrics) · [Compare with hosted scanners](#compare-with-hosted-scanners) · [Accuracy on live phishing](#accuracy-on-live-phishing-2026-10-16) · [Accuracy rerun, 2026-10-21](#accuracy-rerun-2026-10-21) · [Harness path design](#harness-path-design-default-2026-10-21-to-2026-11-02) · [Prompt caching rerun](#prompt-caching-rerun-2026-10-25) · [Accuracy rerun, 2026-10-26](#accuracy-rerun-2026-10-26) · [Accuracy rerun, 2026-10-27](#accuracy-rerun-2026-10-27) · [Each latency flag on its own](#each-latency-flag-on-its-own-2026-11-03) · [Latency history](#latency-history) · [Cost history](#cost-history) · [Limitations](#limitations)
+**On this page:** [Run it](#run-it) · [The dataset](#the-dataset) · [Metrics](#metrics) · [Compare with hosted scanners](#compare-with-hosted-scanners) · [Accuracy on live phishing](#accuracy-on-live-phishing-2026-10-16) · [Accuracy rerun, 2026-10-21](#accuracy-rerun-2026-10-21) · [Harness path design](#harness-path-design-default-2026-10-21-to-2026-11-02) · [Prompt caching rerun](#prompt-caching-rerun-2026-10-25) · [Accuracy rerun, 2026-10-26](#accuracy-rerun-2026-10-26) · [Accuracy rerun, 2026-10-27](#accuracy-rerun-2026-10-27) · [Each latency flag on its own](#each-latency-flag-on-its-own-2026-11-03) · [Independent rerun, 2026-11-12](#independent-rerun-on-a-fresh-feed-2026-11-12) · [Latency history](#latency-history) · [Cost history](#cost-history) · [Limitations](#limitations)
 
 > [!WARNING]
 > Every URL is a paid call to Amazon Bedrock and AgentCore, and each one opens real web pages. Start with `--limit 5`. A full run of the committed sample can take 20 minutes or more: the script calls each of the 4 agents for each of the 21 URLs one at a time (84 calls), and one call takes about 6 to 35 s.
@@ -259,6 +259,30 @@ To see which of the eight latency flags matters, each one was turned off on its 
 - **The other flags were not measurably faster or cheaper on their own.** `directTools` showed a small signal (about 4 s slower median on phishing scans with it off) that one run cannot confirm. `unanimousFastPath`, `localRdap`, `directSpecialists`, `splitToolsRuntimes`, `latencyBudgets` and `codeTextBudget` are inside the noise; three arms that ran in the same hour were faster than all on, which points to time of day, not to the flags.
 - **No flag measurably hurt accuracy**: 46 or 47 caught phishing URLs (of 52, or of 53 in the `directSpecialists` off arm) and the same 2 of 50 false positives in every arm.
 - **Reliability.** With `directSpecialists` off, 2 of 110 scans had all three specialist findings fail (verdict unknown); no other arm had this. With `directTools` off, 1 scan was unknown because the target site rate-limited the capture.
+
+## Independent rerun on a fresh feed, 2026-11-12
+
+A second team deployed the default stack from `main` (`9d32156`) to a separate test account in `ap-southeast-2` and scanned 600 URLs through the API the same day the list was pulled: 300 from a public phishing feed and 300 legitimate sites from an older, general web list (personal, hobby, media and small-business sites). Episodic memory was on (the default; the memory was new, so it only held summaries from this run) and `scanConcurrency` was 25. Dead URLs are left out: 11 phishing and 80 legitimate URLs answered Error 404 or Site down, so 289 phishing and 220 legitimate are scored. Caught means the verdict is phishing, or suspicious with risk 50 or more, as in the runs above; the labelled set is not published.
+
+| Measure (509 live URLs) | Value |
+| --- | --- |
+| Recall, caught | 0.969 (280 of 289) |
+| Recall, phishing or suspicious at any risk | 0.983 (284 of 289) |
+| Recall, phishing verdict only | 0.235 (68 of 289) |
+| False positive rate | 0.014 (3 of 220) |
+| Legitimate URLs judged unknown (action `warn`) | 37 of 220 |
+| Page observed, phishing / legitimate | 0.377 / 0.745 |
+| Recall when the page was observed / not observed | 0.954 (104 of 109) / 0.978 (176 of 180) |
+| Scan time, median and p90 (worker start to verdict) | 17.1 s and 26.6 s |
+| Submit to result, median and p90 (includes queueing) | 27.4 s and 43.3 s |
+| Model cost per scan, mean | $0.063 ($32.47 for 600 URLs) |
+
+- **Recall held on a new feed and a new Region.** 0.969 caught is in line with the 2026-10-27 rerun (0.983) and above the 2026-11-03 A/B (0.883), which used a harder legitimate set; the sets differ, so compare the method, not the headline.
+- **Most phishing pages were not observed.** 146 of the 180 unobserved phishing pages sat behind a Cloudflare "Suspected Phishing" or "Suspected Malware" warning, most on `pages[.]dev`, which the [page-not-observed rule](agents/orchestrator.md#page-not-observed) holds at suspicious. That is why strict recall is low, and why most catches are suspicious with risk 50 to 69. A gate that holds `warn` for a person still catches them.
+- **The 9 phishing URLs missed:** two privacy-policy pages on one agency site (legitimate 5) and a logistics vendor's staging page that names a customer brand (legitimate 12), which may be feed false positives; a short link now pointing at the shortener's broken-link page (suspicious 30) and a host answering "This website has been disabled" (unknown 30), which no longer show phishing; and four with weak evidence: a Blogger game-lure page behind a rate-limit page (suspicious 40), a Vercel "clone" project the browser refused (unknown 40), a Netlify stub that meta-refreshes to a random path (suspicious 45) and a 3-day-old `.cyou` domain showing a default nginx page (suspicious 45).
+- **The 3 false positives look like hijacked domains, not errors:** a re-registered domain serving a copied storefront rebranded as gambling spam with a fake verification overlay (suspicious 65), an old domain redirecting to an unrelated site with an obfuscated, referrer-gated script loader (suspicious 62) and a subdomain redirecting to an online gambling site (suspicious 55). The legitimate list predates these takeovers.
+- **Unknown on old sites.** 37 legitimate URLs were judged unknown, mostly long-abandoned hosts (for example free-hosting and early web community domains) that serve error, placeholder or empty pages. Unknown is not a false positive, but its action is `warn`, so a gate sends it to a person.
+- Caveats: one run, so a few URLs either way are inside run-to-run noise; the legitimate list is older and easier than the sign-in, SaaS and free-hosting set of 2026-11-03, so the false positive rate is not directly comparable.
 
 ## Latency history
 
