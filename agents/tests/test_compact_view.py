@@ -192,7 +192,7 @@ def test_budget_env_parsing(monkeypatch):
 
 
 UBII = (
-    "const ENLACE_DESTINO = 'https://ubiipagos.netlify.app/';"
+    "const ENLACE_DESTINO = 'https://pay-redirect.example/';"
     + "function tick(){var n=0;}" * 120
     + "btn.onclick=function(){setTimeout(function(){window.location.href=ENLACE_DESTINO;},1000)};"
 )
@@ -202,7 +202,7 @@ def test_script_urls_and_whole_scripts_keep_a_far_redirect_target():
     data = capture(scripts=[{"src": None, "text": UBII, "in_dom": True}])
     view = compact_capture(data, 8000)
     entry = view["scripts"][0]
-    assert entry["urls"] == ["https://ubiipagos.netlify.app/"]
+    assert entry["urls"] == ["https://pay-redirect.example/"]
     assert entry["text"] == UBII
 
 

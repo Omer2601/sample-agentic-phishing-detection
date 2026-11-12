@@ -2,8 +2,10 @@
 # SPDX-License-Identifier: MIT-0
 """Evaluate each of the four agents independently against a labelled URL set.
 
-Specialists are called directly on their Runtimes (MCP tools/call); the orchestrator is
-called through the harness. Scores are computed per agent so a regression in one
+Specialists are called directly on their Runtimes (MCP tools/call). The orchestrator is
+scored end to end through the deployed API by default, the path a real scan takes (direct
+orchestration unless the stack opts out), or on the AgentCore Harness with
+--orchestrator-path harness. Scores are computed per agent so a regression in one
 specialist is visible even when the orchestrator still gets the final verdict right.
 
 Usage:
@@ -22,8 +24,12 @@ import time
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import boto3
+import urllib3
+from botocore.auth import SigV4Auth
+from botocore.awsrequest import AWSRequest
 from botocore.config import Config
 
 from phish_contracts.models import Finding, build_orchestrator_message, extract_verdict
@@ -37,6 +43,10 @@ OUTPUT_KEYS = {
     "code_analyst": "CodeAnalystRuntimeArn",
     "orchestrator": "OrchestratorHarnessArn",
 }
+API_OUTPUT_KEY = "ApiUrl"
+TERMINAL = {"COMPLETE", "FAILED"}
+POLL_S = 2.0
+SCAN_TIMEOUT_S = 300
 
 
 def call_specialist(client, runtime_arn: str, url: str, scan_id: str) -> Finding:
@@ -136,6 +146,62 @@ def run_orchestrator(client, harness_arn: str, url: str, scan_id: str) -> str:
     return extract_verdict("".join(text)).verdict.value
 
 
+def api_caller(session, region: str, api_url: str, http=None):
+    """A SigV4-signed JSON caller for the scan API. Sends each request once, https only."""
+    if urlsplit(api_url).scheme != "https":
+        raise ValueError(f"refusing non-https API URL: {api_url!r}")
+    base = api_url.rstrip("/")
+    pool = http or urllib3.PoolManager()
+
+    def call(method: str, path: str, body: dict | None = None) -> dict:
+        url = base + path
+        data = json.dumps(body).encode() if body is not None else None
+        req = AWSRequest(
+            method=method, url=url, data=data, headers={"Content-Type": "application/json"}
+        )
+        creds = session.get_credentials().get_frozen_credentials()
+        SigV4Auth(creds, "execute-api", region).add_auth(req)
+        # No retries: a resent POST /scan would start (and pay for) a second scan.
+        resp = pool.request(
+            method,
+            url,
+            body=data,
+            headers=dict(req.headers),
+            timeout=urllib3.Timeout(connect=10, read=30),
+            retries=False,
+            redirect=False,
+        )
+        if not 200 <= resp.status < 300:
+            raise RuntimeError(f"{method} {path}: HTTP {resp.status}")
+        return json.loads(resp.data)
+
+    return call
+
+
+def run_scan_via_api(
+    call,
+    url: str,
+    *,
+    timeout_s: float = SCAN_TIMEOUT_S,
+    poll_s: float = POLL_S,
+    sleep=time.sleep,
+    clock=time.monotonic,
+) -> str:
+    """Scan one URL through the API (the deployed default path) and return its verdict."""
+    # force skips scanDedup, so every row is a fresh scan rather than an earlier result.
+    scan_id = call("POST", "/scan", {"url": url, "force": True})["scan_id"]
+    deadline = clock() + timeout_s
+    while True:
+        scan = call("GET", f"/scans/{scan_id}")
+        if scan.get("status") == "COMPLETE":
+            return scan["verdict"]["verdict"]
+        if scan.get("status") == "FAILED":
+            raise RuntimeError("scan failed")
+        if clock() >= deadline:
+            raise TimeoutError(f"scan {scan_id} not finished after {timeout_s}s")
+        sleep(poll_s)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--dataset", type=Path, default=HERE / "data" / "committed_sample.csv")
@@ -146,6 +212,13 @@ def main(argv: list[str] | None = None) -> int:
         "--region", default=None, help="defaults to the session region (AWS_REGION or profile)"
     )
     parser.add_argument("--suspicious-as", choices=["phishing", "legitimate"], default="phishing")
+    parser.add_argument(
+        "--orchestrator-path",
+        choices=["api", "harness"],
+        default="api",
+        help="api: scan through the deployed API (the default direct orchestration); "
+        "harness: one verdict turn on the opt-in AgentCore Harness",
+    )
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(message)s")
 
@@ -155,16 +228,23 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("no region: pass --region or set AWS_REGION")
     outputs = stack_outputs(session, args.stack, region)
     client = agentcore_client(session, region)
+    call = None
     dataset = load_dataset(args.dataset)[: args.limit]
     results: dict[str, list[dict]] = {}
     for agent in list(OUTPUT_KEYS) if args.agent == "all" else [args.agent]:
-        arn = outputs[OUTPUT_KEYS[agent]]
+        via_api = agent == "orchestrator" and args.orchestrator_path == "api"
+        if via_api:
+            call = call or api_caller(session, region, outputs[API_OUTPUT_KEY])
+        else:
+            arn = outputs[OUTPUT_KEYS[agent]]
         rows = []
         for url, label in dataset:
             scan_id = f"eval-{uuid.uuid4().hex[:16]}"
             t0 = time.monotonic()
             try:
-                if agent == "orchestrator":
+                if via_api:
+                    verdict = run_scan_via_api(call, url)
+                elif agent == "orchestrator":
                     verdict = run_orchestrator(client, arn, url, scan_id)
                 else:
                     verdict = call_specialist(client, arn, url, scan_id).verdict.value
@@ -185,7 +265,9 @@ def main(argv: list[str] | None = None) -> int:
     report = {agent: score(rows) for agent, rows in results.items()}
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     out = HERE / "results" / f"{stamp}.json"
-    out.write_text(json.dumps({"scores": report, "rows": results}, indent=2))
+    summary = {"orchestrator_path": args.orchestrator_path, "scores": report, "rows": results}
+    out.write_text(json.dumps(summary, indent=2))
+    logger.info("orchestrator path: %s", args.orchestrator_path)
     logger.info("| agent | accuracy | precision | recall | f1 | errors | p50 ms |")
     logger.info("|---|---|---|---|---|---|---|")
     for agent, s in report.items():
