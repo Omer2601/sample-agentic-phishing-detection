@@ -159,35 +159,35 @@ class AppConfig:
     # True: the worker starts the dispatcher itself, alongside the pre-check, and
     # asks the orchestrator model for the verdict and the report with two Converse calls instead
     # of an AgentCore Harness session. No second round, no Harness trace.
-    direct_orchestration: bool = False
+    direct_orchestration: bool = True
     # On by default. True: url_analyst runs its RDAP lookup in process (same SSRF-guarded client
     # and cache) instead of through the tools Runtime.
-    local_rdap: bool = False
+    local_rdap: bool = True
     # On by default; only with directOrchestration. True: the worker stores `legitimate` without
     # a verdict turn when all three specialists answer legitimate at confidence 80 or more, no
     # capture missed the page and nothing above medium was raised. The caps and the report turn
     # still run.
-    unanimous_fast_path: bool = False
+    unanimous_fast_path: bool = True
     # On by default; only with directOrchestration. True: the worker invokes the three
     # specialist Runtimes itself, without the dispatcher hop, and gets InvokeAgentRuntime on
     # them (never on a tools Runtime).
-    direct_specialists: bool = False
+    direct_specialists: bool = True
     # On by default. True: brand_visual and code_analyst call the tools Runtime directly (no
     # tools Gateway hop) on one tools session per scan, shared with the worker's precheck;
     # url_analyst runs RDAP in process. The tools Gateway stays deployed.
-    direct_tools: bool = False
+    direct_tools: bool = True
     # On by default; only with directTools. True: brand_visual and code_analyst each call their
     # own copy of the tools Runtime, so a scan's precheck and two captures draw on three
     # Runtimes' session start capacity instead of one.
-    split_tools_runtimes: bool = False
+    split_tools_runtimes: bool = True
     # On by default. True: every agent Runtime gets LATENCY_BUDGETS=1: code_analyst's capture
     # budget 18 s (3 s raw HTML fallback, 1.5 s settle, 20 s server backstop), brand_visual's
     # screenshot 1.5 to 5 s (a failed one keeps the loaded page), capture client timeouts 28 and
     # 30 s, page-specialist deadline 42 s and dispatcher read timeout 52 s.
-    latency_budgets: bool = False
+    latency_budgets: bool = True
     # "half" by default. "half": code_analyst's capture keeps 10 KB per script, 30 KB of script
     # text in total and 12 KB of rendered DOM (15, 60 and 20 KB otherwise).
-    code_text_budget: str = "full"
+    code_text_budget: str = "half"
     # Off by default. True: POST /scan from a direct API caller hands back the caller's own
     # PENDING or RUNNING scan of the same URL, or one COMPLETE within 24 hours, unless the
     # body sets "force": true. The web console is never deduplicated.
