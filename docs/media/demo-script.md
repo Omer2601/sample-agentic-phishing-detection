@@ -1,6 +1,6 @@
 # Demo video script
 
-Script of `demo.mp4` (about 4 minutes 0 seconds, 1920x1080, 30 fps). Narration is Amazon Polly (generative voice). Every number is measured: the results scene uses the 2026-11-03 run in the README and docs/evaluation.md. Sped-up footage carries an on-screen speed badge. The video shows only the app's own pages, never a phishing site itself; URLs on title cards are defanged.
+Script of `demo.mp4` (about 4 minutes 0 seconds, 1920x1080, 30 fps). Narration is Amazon Polly (generative voice). Every number is measured: the results scene uses the 2026-11-03 run in the README and docs/evaluation.md. Sped-up footage carries an on-screen speed badge. The video shows only the app's own pages, never a phishing site itself; URLs on title cards are defanged, and feed URLs in the live captures are covered with a grey "[URL redacted]" box.
 
 | # | Start | Scene | On screen | Narration |
 | --- | --- | --- | --- | --- |

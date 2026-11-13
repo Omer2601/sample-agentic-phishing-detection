@@ -175,7 +175,7 @@ async def test_blocked_redirect_discards_code_capture():
         ),
         # Release run 2026-09-30: 11 phishing hosts refused this way with no guard refusal.
         (
-            "Page.goto: net::ERR_BLOCKED_BY_CLIENT at http://www.goo.su/hbXzr/",
+            "Page.goto: net::ERR_BLOCKED_BY_CLIENT at http://www.short-link.example/abc/",
             "blocked_by_browser",
             "net::ERR_BLOCKED_BY_CLIENT",
         ),

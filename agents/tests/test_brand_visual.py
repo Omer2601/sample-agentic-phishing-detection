@@ -215,7 +215,7 @@ async def test_navigation_gets_what_the_session_start_leaves_minus_a_small_reser
     )
     await cap.capture()
     # 14 s budget, 5 s start-up: the old 7.5 s reserve left navigation 1.5 s. A slow
-    # phishing page (tetes-air.pages.dev) needed 5.1 s to commit.
+    # phishing page on pages.dev needed 5.1 s to commit.
     assert page.goto_kwargs[0]["timeout"] >= 5_000
     # The settle comes out of what navigation left, never out of the screenshot reserve.
     assert all(t <= capture.SETTLE_MS for _, t in page.load_states)
@@ -233,7 +233,7 @@ def scaled_budget(monkeypatch):
 
 
 async def test_slow_navigation_cannot_spend_the_screenshot_budget(monkeypatch):
-    # tetes-air.pages.dev on 2026-10-01: the page committed and painted, then kept
+    # A pages.dev phishing page on 2026-10-01: the page committed and painted, then kept
     # loading past every timeout. The screenshot must still be taken of what rendered.
     scaled_budget(monkeypatch)
     s3 = FakeS3()

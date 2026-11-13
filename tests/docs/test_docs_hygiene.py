@@ -16,6 +16,57 @@ STALE = re.compile(
 # Legal review prohibits promising outcomes in customer-facing docs.
 PROHIBITED = re.compile(r"\bguarantee[ds]?\b", re.I)
 LINK = re.compile(r"\]\(([^)#\s]+)(?:#[^)]*)?\)")
+# A live phishing URL in a doc is one click from harm; anything off this list must be defanged.
+SAFE_HOSTS = (
+    "example.com",
+    "example.org",
+    "example.net",
+    "example",
+    "invalid",
+    "test",
+    "localhost",
+    "iana.org",
+    "github.com",
+    "amazon.com",
+    "amazonaws.com",
+    "shields.io",
+    "astral.sh",
+    "badssl.com",
+)
+URL_HOST = re.compile(r"https?://([^/\s)\"'`<>|\]]+)")
+# Feed hosts the docs or screenshots once showed, kept defanged so this file stays clean.
+FEED_HOSTS = (
+    "outlook-ashy[.]vercel[.]app",
+    "hetvishah697-alt[.]github[.]io",
+    "auth-autoscout24[.]ch-77c435fn7d[.]icu",
+    "ch-77c435fn7d[.]icu",
+    "info-ledgr-live[.]pages[.]dev",
+    "mydpd[.]ftzgv[.]cc",
+    "raza014[.]github[.]io",
+    "dashboard[.]adobeexperience[.]com[.]br",
+    "d18390wdgenrs6[.]cloudfront[.]net",
+    "community-policy-info[.]vercel[.]app",
+    "exoduslarp[.]vercel[.]app",
+    "netflix-ui-clone-vikas[.]vercel[.]app",
+    "lyloauckland[.]hostel[.]town",
+    "dhl[.]smarthub[.]vuelogix[.]ai",
+    "g5[.]lu",
+    "likpaklix[.]com",
+    "vf4933[.]craftum[.]io",
+    "blockbook[.]b1tcore[.]org",
+    "metamask-docs-fbv47wj26-consensys-ddffed67[.]vercel[.]app",
+)
+
+
+def _unsafe_hosts(text):
+    hosts = []
+    for raw in URL_HOST.findall(text):
+        host = raw.lower().split("@")[-1].split(":")[0].rstrip(".")
+        if host.startswith("...") or not host:
+            continue
+        if not any(host == s or host.endswith("." + s) for s in SAFE_HOSTS):
+            hosts.append(host)
+    return hosts
 
 
 @pytest.mark.parametrize("path", DOCS, ids=lambda p: str(p.relative_to(ROOT)))
@@ -45,6 +96,25 @@ def test_relative_links_resolve(path):
         if target.startswith(("http://", "https://", "mailto:")):
             continue
         assert (path.parent / target).exists(), f"{path}: broken link {target}"
+
+
+@pytest.mark.parametrize("path", DOCS, ids=lambda p: str(p.relative_to(ROOT)))
+def test_no_live_urls(path):
+    hosts = _unsafe_hosts(path.read_text())
+    assert not hosts, f"un-defanged URL host {hosts} in {path}; defang it (hxxps://, [.])"
+
+
+@pytest.mark.parametrize("path", DOCS, ids=lambda p: str(p.relative_to(ROOT)))
+def test_no_known_feed_hosts(path):
+    text = path.read_text().lower()
+    hits = [h for h in FEED_HOSTS if h.replace("[.]", ".") in text]
+    assert not hits, f"un-defanged feed host {hits} in {path}"
+
+
+def test_live_url_rules_catch_a_feed_url():
+    live = "see https://" + FEED_HOSTS[0].replace("[.]", ".") + "/"
+    assert _unsafe_hosts(live) == [FEED_HOSTS[0].replace("[.]", ".")]
+    assert _unsafe_hosts("hxxps://outlook-ashy[.]vercel[.]app/ and https://example.com/") == []
 
 
 @pytest.mark.parametrize("name", ONE_PAGE)

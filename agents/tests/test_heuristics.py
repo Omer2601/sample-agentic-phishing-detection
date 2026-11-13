@@ -212,14 +212,14 @@ def test_clipboard_write_is_not_hijack_and_read_is_not_high():
 
 
 def test_relative_telegram_endpoint_and_ip_lookup():
-    # netflix-coral-zeta.vercel.app: the kit posts to its own /api/telegram/sendMessage.
+    # netflix-clone.example: the kit posts to its own /api/telegram/sendMessage.
     kit = cap(
         sinks=[
             {"kind": "fetch", "url": "https://api.ipify.org?format=json"},
             {"kind": "fetch", "url": "/api/telegram/sendMessage"},
         ]
     )
-    got = sev(derive_signals(kit, "netflix-coral-zeta.vercel.app"))
+    got = sev(derive_signals(kit, "netflix-clone.example"))
     assert got["telegram_bot_exfil"] == "critical"
     assert got["ip_geolocation_lookup"] == "medium"
 
