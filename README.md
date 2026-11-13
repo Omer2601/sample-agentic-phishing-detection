@@ -46,6 +46,19 @@ The preview above is a silent 25-second excerpt. Watch the [full 4-minute demo w
 
 </details>
 
+### Independent rerun, 2026-11-12
+
+A second team deployed the default stack from `main` (`9d32156`) to a separate test account in `ap-southeast-2` and scanned 600 URLs: 300 from a public phishing feed pulled that day and 300 legitimate sites from an older, general web list. 509 were live: 289 phishing and 220 legitimate. Caught is scored as above.
+
+| Measure (509 live URLs)    | Default, 2026-11-12 |
+| -------------------------- | ------------------- |
+| Phishing caught (recall)   | 96.9% (280 of 289)  |
+| False positive rate        | 1.4% (3 of 220)     |
+| Median / p90 scan time     | 17.1 s / 26.6 s     |
+| Model cost per scan (mean) | $0.063              |
+
+Caveats: one run, so a few URLs either way are inside run-to-run noise. The legitimate list is older and easier than the sign-in, SaaS and free-hosting set of 2026-11-03, so the false positive rate is not directly comparable, and the URL sets differ, so compare the method, not the headline. The labelled set is not published. Details: [docs/evaluation.md](docs/evaluation.md#independent-rerun-on-a-fresh-feed-2026-11-12).
+
 ## What it does
 
 | At a glance | |
